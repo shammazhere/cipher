@@ -31,7 +31,7 @@ const PAGE_SEO_METADATA: Record<string, SEOConfig> = {
   },
   events: {
     title: 'Events & Workshops — Lumiere, PromptOps & Archive | CIPHER SJEC',
-    description: 'Explore upcoming and past flagship events hosted by CIPHER, including the Lumiere annual gala, PromptOps AI arena, and an archive of 17+ technical symposiums.',
+    description: 'Explore upcoming and past flagship events hosted by CIPHER, including the Lumiere annual gala, PromptOps competition, and an archive of 17+ technical symposiums.',
     keywords: 'CIPHER Events, Lumiere, PromptOps, Technical Workshops, Hackathons, CSE SJEC',
     canonicalPath: '#events',
   },

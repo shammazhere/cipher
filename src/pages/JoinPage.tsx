@@ -296,7 +296,7 @@ export const JoinPage: React.FC = () => {
                     className="w-full rounded border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] focus:border-[#00ff41] focus:outline-none"
                   >
                     <option value="Full-Stack Engineering">Full-Stack Engineering (Web &amp; Cloud)</option>
-                    <option value="AI & Machine Learning">AI &amp; Machine Learning (LLMs &amp; PromptOps)</option>
+                    <option value="Machine Learning & Analytics">Machine Learning &amp; Data Analytics</option>
                     <option value="Cybersecurity">Cybersecurity &amp; Cryptography (CTFs &amp; Auditing)</option>
                     <option value="Events & Design Operations">Events &amp; Design Operations</option>
                   </select>

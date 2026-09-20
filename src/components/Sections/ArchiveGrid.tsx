@@ -15,18 +15,18 @@ import { useData } from '../../context/DataContext';
 export const ArchiveGrid: React.FC = () => {
   const { archive } = useData();
   const [backdoorOpen, setBackdoorOpen] = useState(false);
-  const [filter, setFilter] = useState<'ALL' | 'AI' | 'WEB3' | 'CAREER'>('ALL');
+  const [filter, setFilter] = useState<'ALL' | 'DEV' | 'SYSTEMS' | 'CAREER'>('ALL');
 
   const getCategory = (title: string): string => {
     const t = title.toLowerCase();
-    if (t.includes('machine learning') || t.includes('ai') || t.includes('learning') || t.includes('latex')) {
-      return 'AI & RESEARCH';
+    if (t.includes('react') || t.includes('github') || t.includes('uml') || t.includes('latex') || t.includes('programming')) {
+      return 'SOFTWARE DEV';
     }
-    if (t.includes('solidity') || t.includes('blockchain') || t.includes('cloud') || t.includes('devops') || t.includes('rpa')) {
-      return 'WEB3 & CLOUD';
+    if (t.includes('blockchain') || t.includes('solidity') || t.includes('rpa') || t.includes('machine learning') || t.includes('crowdsource') || t.includes('tools')) {
+      return 'SYSTEMS & CLOUD';
     }
-    if (t.includes('interview') || t.includes('alumni') || t.includes('talk') || t.includes('connect') || t.includes('soft skills')) {
-      return 'CAREER & ALUMNI';
+    if (t.includes('interview') || t.includes('visit') || t.includes('onboarding') || t.includes('funded') || t.includes('udaan')) {
+      return 'INDUSTRY & CAREER';
     }
     return 'TECH WORKSHOP';
   };
@@ -35,9 +35,9 @@ export const ArchiveGrid: React.FC = () => {
     if (filter === 'ALL') return archive;
     return archive.filter((item) => {
       const cat = getCategory(item.title);
-      if (filter === 'AI') return cat.includes('AI');
-      if (filter === 'WEB3') return cat.includes('WEB3');
-      if (filter === 'CAREER') return cat.includes('CAREER');
+      if (filter === 'DEV') return cat === 'SOFTWARE DEV';
+      if (filter === 'SYSTEMS') return cat === 'SYSTEMS & CLOUD';
+      if (filter === 'CAREER') return cat === 'INDUSTRY & CAREER';
       return true;
     });
   }, [archive, filter]);
@@ -48,7 +48,7 @@ export const ArchiveGrid: React.FC = () => {
         {/* Section Header */}
         <div className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.3em] text-[#00ff41]">
           <span>// ARCHIVE</span>
-          <span className="text-[#2c7a3a] hidden sm:inline">&gt;&gt; PAST_RECORDS</span>
+          <span className="text-[#2c7a3a] hidden sm:inline">&gt;&gt; PAST_ACTIVITIES</span>
         </div>
 
         <h2 className="mt-4 font-display text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#c8f7d0] text-glow">
@@ -56,7 +56,7 @@ export const ArchiveGrid: React.FC = () => {
         </h2>
 
         <p className="mt-4 font-mono text-xs sm:text-sm text-[#6fae78] max-w-2xl">
-          Hands-on workshops, industrial visits, and technical sessions run by the Cipher Association — spanning AI, blockchain, research tooling, and career prep.
+          Hands-on workshops, industrial visits, and technical sessions run by the Cipher Association — spanning full-stack development, cloud systems, research tooling, and career readiness.
         </p>
 
         {/* Interactive Filter Chips Bar */}
@@ -64,9 +64,9 @@ export const ArchiveGrid: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2">
             {([
               { id: 'ALL', label: 'All Activities' },
-              { id: 'AI', label: 'AI & Machine Learning' },
-              { id: 'WEB3', label: 'Web3 & Blockchain' },
-              { id: 'CAREER', label: 'Career & Industry' },
+              { id: 'DEV', label: 'Software & Dev' },
+              { id: 'SYSTEMS', label: 'Systems & Cloud' },
+              { id: 'CAREER', label: 'Industry & Visits' },
             ] as const).map((tab) => (
               <button
                 key={tab.id}

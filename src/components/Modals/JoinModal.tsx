@@ -215,7 +215,7 @@ export const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose }) => {
                     <option value="Competitive Programming">Competitive Programming</option>
                     <option value="Events & Operations">Events &amp; Operations</option>
                     <option value="Design & Media">Design &amp; Media</option>
-                    <option value="AI & Research">AI &amp; Research</option>
+                    <option value="Algorithms & Research">Algorithms &amp; Research</option>
                   </select>
                 </div>
               </div>

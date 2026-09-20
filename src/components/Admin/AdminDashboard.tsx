@@ -239,7 +239,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                     cardSummary: 'Brief summary of the upcoming event session.',
                     detailedReport: ['Full detailed report of the workshop.'],
                     galleryCount: '01',
-                    images: ['/lumiere/website_photo_1.jpg'],
+                    images: ['/lumiere/website_photo_1.webp'],
                   };
                   addEvent(newEv);
                   setEditingEvent(newEv);
@@ -363,7 +363,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                     id: 'lead-' + Date.now(),
                     name: 'New Executive Member',
                     role: 'EXECUTIVE MEMBER',
-                    image: '/leadership/president.png',
+                    image: '/leadership/president.webp',
                     bio: 'Executive team member dedicated to CIPHER operations.',
                     github: 'https://github.com',
                     linkedin: 'https://linkedin.com',
