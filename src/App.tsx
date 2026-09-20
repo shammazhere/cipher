@@ -129,8 +129,8 @@ export const AppContent: React.FC = () => {
             {currentPage === 'components' && <ComponentLibraryPage />}
           </main>
 
-          {/* Site Footer */}
-          <Footer />
+          {/* Site Footer with interactive clickable links */}
+          <Footer currentPage={currentPage} onNavigate={navigateTo} />
 
           {/* Global Application Form Modal */}
           <JoinModal
