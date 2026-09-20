@@ -29,14 +29,15 @@ export const CustomCursor: React.FC = () => {
     let frameId: number;
 
     const updatePosition = () => {
-      // Smooth lerp (linear interpolation) gives the cursor fluid momentum
-      currentPos.x += (targetPos.x - currentPos.x) * 0.18;
-      currentPos.y += (targetPos.y - currentPos.y) * 0.18;
+      // Fast and snappy lerp (linear interpolation) keeps up with hand movement smoothly
+      currentPos.x += (targetPos.x - currentPos.x) * 0.48;
+      currentPos.y += (targetPos.y - currentPos.y) * 0.48;
 
       if (outerRef.current) {
         outerRef.current.style.transform = `translate3d(${currentPos.x}px, ${currentPos.y}px, 0) translate(-50%, -50%)`;
       }
       if (dotRef.current) {
+        // Direct tracking on the pinpoint dot gives zero-lag precision
         dotRef.current.style.transform = `translate3d(${targetPos.x}px, ${targetPos.y}px, 0) translate(-50%, -50%)`;
       }
 
