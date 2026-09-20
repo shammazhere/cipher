@@ -14,3 +14,5 @@ export * from './usePageSEO';
 export * from './useSecureForm';
 export * from './useInViewAnimation';
 export * from './useAdminCMS';
+export * from './useAdminAuth';
+export * from './useSmoothScroll';

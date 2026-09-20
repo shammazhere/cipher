@@ -60,27 +60,60 @@ Built for the **Build Blazer Hackathon (Phase 2 - Implementation Round)** for th
 
 ---
 
-## 4. Technical Standards & Architecture
+---
 
-### Technology Stack
-- **Framework**: React 18 with TypeScript and Vite
-- **Styling**: Tailwind CSS with custom cyber tokens and CSS scanline effects
-- **Motion & Canvas**: Custom HTML5 Canvas 2D engine for Simplex noise topography & Katakana rain; Framer Motion for modal transitions; Lenis for smooth momentum scrolling
-- **Icons**: Lucide React (strictly no emojis)
+## 4. Engineering Architecture & System Pillars
 
-### Security Baseline
-- **Zero Exposed Keys**: Client contains no hardcoded private keys or production secrets.
-- **Input Sanitization**: All text input from forms or admin edits passes through `sanitizeInput()` in `src/utils/sanitize.ts`, neutralizing HTML tags, javascript pseudo-protocols, and malicious event attributes.
-- **Form Length Clamping**: Prevents memory exhaustion attacks with strict payload limits.
+### 1. Custom React Hooks Architecture (`src/hooks/`)
+The platform decouples state and side-effects from UI presentation via modular, single-responsibility custom hooks:
+- **`useSecureForm`**: Fortress-grade form state management with XSS sanitization, anti-bot honeypot detection (`_honeypot`), SJEC USN pattern verification (`4SO22CS001`), and cooldown rate-limiting.
+- **`usePageSEO`**: Dynamic per-route DOM synchronization for `<title>`, `<meta name="description">`, OpenGraph social graphs, Twitter cards, and canonical links.
+- **`useInViewAnimation`**: Performance optimizer combining `IntersectionObserver` with the Page Visibility API to suspend 60 FPS animation loops when off-screen or when the browser tab is minimized.
+- **`useTrailingCursor`**: Physics-driven dual-ring mouse reticle (Lerp 0.16 + echo ring 0.112) that morphs into an inspection lens over interactive elements without triggering React re-renders.
+- **`useAdminCMS`**: Content management coordinator with live in-browser entity filtering, tab routing, item reordering, and one-click JSON export/import.
+- **`useAdminAuth`**: Master passkey gatekeeper (`cipher@sjec2026`) with brute-force lockout defense and session state persistence.
+- **`useSmoothScroll`**: Inertial momentum scrolling powered by Lenis with exponential deceleration curves and modal scroll locking.
 
-### Content Maintenance for Non-Developers
-Non-technical club organizers can modify the website in two ways:
-1. **Using the in-browser Admin CMS** at `/#admin` (changes persist in the browser and can be reset anytime).
-2. **Editing pure JSON files** in `src/data/`:
-   - `src/data/events.json`: Add, edit, or remove club events.
-   - `src/data/leadership.json`: Update executive council details.
-   - `src/data/archive.json`: Add past workshops.
-   - Detailed step-by-step instructions are documented in `src/data/README.md`.
+### 2. Security Baseline
+- **Strict XSS Sanitization (`src/utils/sanitize.ts`)**: Converts high-risk characters (`&`, `<`, `>`, `"`, `'`, `/`) into HTML character entities to neutralize script injection and payload execution.
+- **Anti-Bot Honeypot Defense**: An invisible honeypot field catches automated web scrapers and spam bots, silently rejecting bot submissions.
+- **Strict Regex Validation**: Enforces standard SJEC/VTU student IDs (`^[0-9][A-Z]{2}[0-9]{2}[A-Z]{2}[0-9]{3}$`) and RFC-compliant student emails.
+- **Payload Length Clamping**: Enforces strict character limits on student applications to prevent memory exhaustion.
+- **Security Headers**: `X-Content-Type-Options: nosniff` and `referrer: strict-origin-when-cross-origin` prevent MIME sniffing and protect referrer telemetry.
+- **Zero Exposed Secrets**: No private API keys or database credentials exist in client bundles.
+
+### 3. Performance Engineering
+- **Asset Compression & Modern Formats**: Slashed image payloads from ~24.4 MB to lightweight progressive assets and ultra-efficient WebP siblings (<100 KB per leader portrait, <150 KB per event photo).
+- **Adaptive 60 FPS Canvas Rendering**: Simplex noise topography canvas automatically pauses during tab switches and off-screen scrolls, dropping GPU/CPU utilization to zero.
+- **Direct DOM Coordinate Transforms**: Cursor coordinates bypass React state cycles and write directly to `style.transform = translate3d(...)` with passive mouse listeners for 120 FPS display fluidity.
+- **Route-Based Code Splitting**: Heavy modules (`AdminDashboard`, `AdminAuthGate`, `ComponentLibraryPage`) are code-split with `React.lazy` and `Suspense`, keeping initial public bundle sizes ultra-lean.
+- **Manual Vendor Chunking in Vite**: Separate cached chunks for `vendor-react`, `vendor-motion`, `vendor-lenis`, and `vendor-icons`.
+
+### 4. SEO & Meta Tags
+- **Dynamic Route Metadata**: Route changes dynamically update document title and description for search crawler indexation.
+- **Social Graph Cards**: OpenGraph and Twitter summary cards for rich link unfurling on LinkedIn, WhatsApp, and Discord.
+- **Canonical URL Protection**: Maintains canonical link tags preventing duplicate indexation penalties.
+- **Rich Schema.org JSON-LD**: Embedded structured data for `EducationalOrganization`, `CollegeOrUniversity` (SJEC), `WebSite`, `BreadcrumbList`, and `Event` schemas for *Lumière* and *PromptOps*.
+- **XML Sitemap & Robots.txt**: Structured `sitemap.xml` listing all 5 mandatory routes with change frequencies and priorities.
+
+### 5. Easy Content Updates (Decoupled Data Layer & Admin CMS)
+- **100% Decoupled JSON Data (`src/data/`)**:
+  - `events.json`: Flagship event metadata, schedules, and photo arrays.
+  - `leadership.json`: Executive council portraits, bios, and verified social handles.
+  - `archive.json`: Historical catalog of 17+ department workshops and symposiums.
+  - `domains.json`: The 4 technical development tracks.
+  - `siteConfig.json`: Department metadata, council emails, and social links.
+- **In-Browser Admin CMS (`/#admin`)**:
+  - Live in-place editing, item position reordering (Move Up / Move Down), and `localStorage` persistence.
+  - One-click **Export JSON** to commit changes directly to Git, and **Import JSON** to load updated payloads.
+- **Non-Technical Maintenance Manual (`src/data/README.md`)**: Plain-language guide for non-developers on updating photos and JSON files.
+
+### 6. Code Optimization & Quality Standards
+- **Zero Emoji Rule**: Exclusively uses clean vector SVG icons via `lucide-react`.
+- **Memory Leak Defense**: All event listeners, timers, and `requestAnimationFrame` loops are cleanly unmounted.
+- **Strict TypeScript Typing**: Full interface contracts in `src/types/index.ts` eliminate runtime shape defects.
+- **CSS GPU Acceleration**: Utilizes `translate3d`, `will-change`, and hardware-accelerated CSS backdrops for 60 FPS transitions.
+
 
 ---
 

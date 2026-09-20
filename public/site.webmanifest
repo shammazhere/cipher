@@ -1,0 +1,30 @@
+{
+  "name": "CIPHER — Student Association of CSE | SJEC",
+  "short_name": "CIPHER",
+  "description": "Official portal of the Computer Science & Engineering student association at St. Joseph Engineering College, Mangaluru.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050705",
+  "theme_color": "#00ff41",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/cipher-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/cipher-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/cipher-logo.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any"
+    }
+  ]
+}

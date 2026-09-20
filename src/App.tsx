@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import Lenis from 'lenis';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { DataProvider } from './context/DataContext';
 import { MatrixBoot } from './components/Preloader/MatrixBoot';
 import { TopographyCanvas } from './components/Canvas/TopographyCanvas';
@@ -10,24 +9,47 @@ import { JoinModal } from './components/Modals/JoinModal';
 
 import { usePageSEO } from './hooks/usePageSEO';
 import { useAdminAuth } from './hooks/useAdminAuth';
+import { useSmoothScroll } from './hooks/useSmoothScroll';
 
-// 5 Mandatory Pages + Component Library + Admin CMS
+// 5 Core Pages (Instant Load)
 import { HomePage } from './pages/HomePage';
 import { AboutPage } from './pages/AboutPage';
 import { EventsPage } from './pages/EventsPage';
 import { TeamPage } from './pages/TeamPage';
 import { JoinPage } from './pages/JoinPage';
-import { ComponentLibraryPage } from './pages/ComponentLibraryPage';
-import { AdminDashboard } from './components/Admin/AdminDashboard';
-import { AdminAuthGate } from './components/Admin/AdminAuthGate';
+
+// Lazy Loaded Heavy Modules (Code-split for blazing-fast initial bundle)
+const ComponentLibraryPage = lazy(() =>
+  import('./pages/ComponentLibraryPage').then((m) => ({ default: m.ComponentLibraryPage }))
+);
+const AdminDashboard = lazy(() =>
+  import('./components/Admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard }))
+);
+const AdminAuthGate = lazy(() =>
+  import('./components/Admin/AdminAuthGate').then((m) => ({ default: m.AdminAuthGate }))
+);
+
+/**
+ * Cyber Module Loading Fallback
+ */
+const CyberModuleLoader: React.FC<{ label: string }> = ({ label }) => (
+  <div className="min-h-[60vh] flex flex-col items-center justify-center font-mono p-8 space-y-4">
+    <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-[#00ff41]">
+      <span className="h-2 w-2 rounded-full bg-[#00ff41] animate-ping" />
+      <span>// DECRYPTING_MODULE // {label}</span>
+    </div>
+    <div className="h-1 w-48 rounded bg-[#123a17] overflow-hidden">
+      <div className="h-full bg-[#00ff41] animate-[pulse_1s_infinite] w-3/4" />
+    </div>
+  </div>
+);
 
 /**
  * Main Application Coordinator
  * 
  * Non-technical explanation:
- * Manages which of the 5 mandatory pages is currently active,
- * handles the cyberpunk preloader on initial visit,
- * and maintains smooth inertia scrolling across the site.
+ * Coordinates the 5 mandatory pages, handles route code-splitting for fast load times,
+ * manages the preloader state, and provides buttery-smooth inertial scrolling.
  */
 
 export const AppContent: React.FC = () => {
@@ -55,6 +77,12 @@ export const AppContent: React.FC = () => {
   // Dynamically synchronize document title, OpenGraph tags, and meta descriptions per route
   usePageSEO(currentPage);
 
+  // Buttery-smooth inertial scroll powered by Lenis
+  useSmoothScroll({
+    disabled: currentPage === 'admin',
+    isModalOpen: isJoinModalOpen || !bootSeen,
+  });
+
   // Sync hash in URL with page state for browser back/forward and shareable links
   useEffect(() => {
     const onHashChange = () => {
@@ -75,32 +103,16 @@ export const AppContent: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Lenis smooth momentum scrolling
-  useEffect(() => {
-    if (currentPage === 'admin') return;
-
-    const lenis = new Lenis({
-      duration: 1.1,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: 'vertical',
-      smoothWheel: true,
-    });
-
-    function raf(time: number) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    }
-
-    const rafId = requestAnimationFrame(raf);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      lenis.destroy();
-    };
-  }, [currentPage]);
-
   return (
     <div className="relative min-h-screen bg-[#050705] text-[#c8f7d0] selection:bg-[#00ff41]/20 selection:text-[#00ff41]">
+      {/* Accessibility: Skip to main content link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded focus:border focus:border-[#00ff41] focus:bg-[#050705] focus:px-4 focus:py-2 focus:text-xs focus:font-mono focus:text-[#00ff41]"
+      >
+        Skip to main content
+      </a>
+
       {/* High-Performance Custom Tactical Reticle Cursor */}
       <CustomCursor />
 
@@ -109,19 +121,21 @@ export const AppContent: React.FC = () => {
         <MatrixBoot onComplete={() => setBootSeen(true)} />
       )}
 
-      {/* ADMIN CMS VIEW WITH AUTHENTICATION GATE */}
+      {/* ADMIN CMS VIEW WITH AUTHENTICATION GATE (LAZY LOADED) */}
       {currentPage === 'admin' ? (
-        !isAuthenticated ? (
-          <AdminAuthGate
-            onAuthenticated={() => {}}
-            onCancel={() => navigateTo('home')}
-          />
-        ) : (
-          <AdminDashboard
-            onBackToSite={() => navigateTo('home')}
-            onLogout={handleAdminLogout}
-          />
-        )
+        <Suspense fallback={<CyberModuleLoader label="ADMIN_CMS_SUBSYSTEM" />}>
+          {!isAuthenticated ? (
+            <AdminAuthGate
+              onAuthenticated={() => {}}
+              onCancel={() => navigateTo('home')}
+            />
+          ) : (
+            <AdminDashboard
+              onBackToSite={() => navigateTo('home')}
+              onLogout={handleAdminLogout}
+            />
+          )}
+        </Suspense>
       ) : (
         /* PUBLIC SITE VIEW */
         <>
@@ -136,7 +150,7 @@ export const AppContent: React.FC = () => {
           />
 
           {/* Main View Router: 5 Mandatory Pages + Component Library */}
-          <main className="relative z-10">
+          <main id="main-content" className="relative z-10">
             {currentPage === 'home' && (
               <HomePage onOpenJoin={() => setIsJoinModalOpen(true)} />
             )}
@@ -144,7 +158,11 @@ export const AppContent: React.FC = () => {
             {currentPage === 'events' && <EventsPage />}
             {currentPage === 'team' && <TeamPage />}
             {currentPage === 'join' && <JoinPage />}
-            {currentPage === 'components' && <ComponentLibraryPage />}
+            {currentPage === 'components' && (
+              <Suspense fallback={<CyberModuleLoader label="DESIGN_SYSTEM_LIBRARY" />}>
+                <ComponentLibraryPage />
+              </Suspense>
+            )}
           </main>
 
           {/* Site Footer with interactive clickable links */}
@@ -168,3 +186,4 @@ export default function App() {
     </DataProvider>
   );
 }
+
