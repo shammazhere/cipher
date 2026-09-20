@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   ArrowUp,
   ArrowDown,
@@ -9,6 +9,7 @@ import {
   Eye,
   Check,
   Upload,
+  Download,
   Calendar,
   Users,
   Archive,
@@ -17,16 +18,16 @@ import {
   X,
   ExternalLink,
 } from 'lucide-react';
-import { useData } from '../../context/DataContext';
 import { EventItem, Leader, ArchiveItem, MemberApplication } from '../../types';
+import { useAdminCMS } from '../../hooks/useAdminCMS';
 
 /**
  * Admin Dashboard & Content Management System (CMS)
  * 
  * Non-technical explanation:
  * This interface lets association leads and organizers update photos, change descriptions,
- * reorder the display order (positions) of cards on the homepage, and inspect applications
- * submitted through the "Join CIPHER" form.
+ * reorder the display order (positions) of cards on the homepage, inspect applications
+ * submitted through the "Join CIPHER" form, and export/import pure JSON files.
  */
 
 interface AdminDashboardProps {
@@ -55,16 +56,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite }) 
     updateSiteConfig,
     deleteApplication,
     resetToDefaults,
-  } = useData();
+    activeTab,
+    setActiveTab,
+    statusNotification,
+    exportJSON,
+    importJSON,
+  } = useAdminCMS();
 
-  const [activeTab, setActiveTab] = useState<'events' | 'leadership' | 'archive' | 'applications' | 'settings'>('events');
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
   const [editingLeader, setEditingLeader] = useState<Leader | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const showNotification = (msg: string) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  const activeNotification = notification || statusNotification;
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const type = activeTab === 'leadership' ? 'leadership' : activeTab === 'archive' ? 'archive' : 'events';
+    importJSON(file, type);
   };
 
   return (
@@ -82,7 +97,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite }) 
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Hidden file input for JSON import */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImportFile}
+              accept=".json"
+              className="hidden"
+            />
+
+            {/* Export JSON Button for Non-Developers */}
+            <button
+              type="button"
+              onClick={() => exportJSON(activeTab === 'events' ? 'events' : activeTab === 'leadership' ? 'leadership' : activeTab === 'archive' ? 'archive' : 'all')}
+              className="flex items-center gap-1.5 rounded border border-[#00ff41]/50 bg-[#00ff41]/10 px-3 py-1.5 text-xs text-[#00ff41] hover:bg-[#00ff41]/20 transition-colors"
+              title="Download formatted JSON file ready to drop into src/data/"
+            >
+              <Download size={13} />
+              <span>EXPORT JSON</span>
+            </button>
+
+            {/* Import JSON Button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1.5 rounded border border-[#123a17] bg-[#080d08] px-3 py-1.5 text-xs text-[#6fae78] hover:border-[#00ff41] hover:text-[#00ff41] transition-colors"
+              title="Import a JSON file from your computer"
+            >
+              <Upload size={13} />
+              <span>IMPORT JSON</span>
+            </button>
+
             {/* Reset to defaults */}
             <button
               type="button"
@@ -95,7 +141,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite }) 
               className="flex items-center gap-1.5 rounded border border-[#ff5f56]/40 bg-[#ff5f56]/10 px-3 py-1.5 text-xs text-[#ff5f56] hover:bg-[#ff5f56]/20 transition-colors"
             >
               <RotateCcw size={13} />
-              <span>RESET DATA</span>
+              <span>RESET</span>
             </button>
 
             {/* Return to public site */}
@@ -105,7 +151,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite }) 
               className="flex items-center gap-1.5 rounded border border-[#00ff41] bg-[#00ff41] px-4 py-1.5 text-xs font-bold text-[#050705] hover:bg-[#00ff66] transition-colors"
             >
               <Eye size={13} />
-              <span>VIEW PUBLIC SITE</span>
+              <span>PUBLIC SITE</span>
             </button>
           </div>
         </div>
@@ -146,10 +192,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite }) 
       </header>
 
       {/* Floating Status Notification */}
-      {notification && (
+      {activeNotification && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded border border-[#00ff41] bg-[#080d08] px-4 py-3 text-xs text-[#00ff41] shadow-[0_0_20px_rgba(0,255,65,0.4)]">
           <Check size={16} />
-          <span>{notification}</span>
+          <span>{activeNotification}</span>
         </div>
       )}
 
