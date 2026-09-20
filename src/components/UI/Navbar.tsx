@@ -1,25 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Shield, Settings } from 'lucide-react';
+import { Menu, X, Settings, Layers } from 'lucide-react';
 
 /**
  * Navbar Component
  * 
  * Non-technical explanation:
- * The top navigation bar of the website.
- * Contains the CIPHER winged emblem, quick navigation links (Home, About,
- * Leadership, Events, Join), an Admin dashboard link, and the glowing Join button.
+ * Top navigation bar connecting all 5 mandatory pages (Home, About, Events, Team, Join),
+ * plus shortcuts to the Component Library and the Admin CMS dashboard.
  */
 
 interface NavbarProps {
+  currentPage: string;
+  onNavigate: (page: string) => void;
   onOpenJoin: () => void;
-  onNavigateAdmin: () => void;
-  isAdminView?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
+  currentPage,
+  onNavigate,
   onOpenJoin,
-  onNavigateAdmin,
-  isAdminView = false,
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -33,26 +32,27 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, []);
 
   const navLinks = [
-    { name: 'HOME', href: '#top' },
-    { name: 'ABOUT', href: '#about' },
-    { name: 'LEADERSHIP', href: '#leadership' },
-    { name: 'EVENTS', href: '#events' },
-    { name: 'JOIN', href: '#join' },
+    { id: 'home', name: 'HOME' },
+    { id: 'about', name: 'ABOUT' },
+    { id: 'events', name: 'EVENTS' },
+    { id: 'team', name: 'TEAM' },
+    { id: 'join', name: 'JOIN' },
   ];
 
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? 'bg-[#050705]/85 backdrop-blur-md border-b border-[#123a17] shadow-[0_4px_30px_rgba(0,0,0,0.8)]'
+          ? 'bg-[#050705]/90 backdrop-blur-md border-b border-[#123a17] shadow-[0_4px_30px_rgba(0,0,0,0.8)]'
           : 'bg-transparent border-b border-transparent'
       }`}
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-10">
-        {/* Left: Brand Logo & Title */}
-        <a
-          href="#top"
-          className="group flex items-center gap-3 transition-transform duration-200 hover:scale-[1.02]"
+        {/* Left: Brand Emblem & Home link */}
+        <button
+          type="button"
+          onClick={() => onNavigate('home')}
+          className="group flex items-center gap-3 transition-transform duration-200 hover:scale-[1.02] text-left"
           data-cursor="lens"
         >
           <img
@@ -68,27 +68,51 @@ export const Navbar: React.FC<NavbarProps> = ({
               SJEC · CSE
             </span>
           </div>
-        </a>
+        </button>
 
-        {/* Center: Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              className="font-mono text-xs font-medium tracking-widest text-[#c8f7d0]/80 transition-colors duration-200 hover:text-[#00ff41] hover:text-glow"
-              data-cursor="lens"
-            >
-              {link.name}
-            </a>
-          ))}
+        {/* Center: Desktop Links */}
+        <nav className="hidden md:flex items-center gap-7">
+          {navLinks.map((link) => {
+            const isActive = currentPage === link.id;
+            return (
+              <button
+                key={link.id}
+                type="button"
+                onClick={() => onNavigate(link.id)}
+                className={`font-mono text-xs font-semibold tracking-widest transition-all duration-200 py-1 ${
+                  isActive
+                    ? 'text-[#00ff41] text-glow border-b-2 border-[#00ff41]'
+                    : 'text-[#c8f7d0]/80 hover:text-[#00ff41]'
+                }`}
+                data-cursor="lens"
+              >
+                {link.name}
+              </button>
+            );
+          })}
 
-          {/* Admin Dashboard shortcut link */}
+          {/* Component Library link */}
           <button
             type="button"
-            onClick={onNavigateAdmin}
-            className={`flex items-center gap-1.5 font-mono text-xs font-medium tracking-wider px-2.5 py-1 rounded transition-colors ${
-              isAdminView
+            onClick={() => onNavigate('components')}
+            className={`flex items-center gap-1.5 font-mono text-[11px] font-medium tracking-wider px-2 py-1 rounded transition-colors ${
+              currentPage === 'components'
+                ? 'text-[#00ff41] bg-[#00ff41]/10 border border-[#00ff41]/40'
+                : 'text-[#6fae78] hover:text-[#00ff41]'
+            }`}
+            data-cursor="lens"
+            title="Component Library Showcase"
+          >
+            <Layers size={13} />
+            <span>LIBRARY</span>
+          </button>
+
+          {/* Admin CMS link */}
+          <button
+            type="button"
+            onClick={() => onNavigate('admin')}
+            className={`flex items-center gap-1.5 font-mono text-[11px] font-medium tracking-wider px-2 py-1 rounded transition-colors ${
+              currentPage === 'admin'
                 ? 'text-[#00ff41] bg-[#00ff41]/10 border border-[#00ff41]/40'
                 : 'text-[#6fae78] hover:text-[#00ff41]'
             }`}
@@ -96,11 +120,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             title="Admin Content & Positions CMS"
           >
             <Settings size={13} />
-            <span>{isAdminView ? 'BACK TO SITE' : 'ADMIN'}</span>
+            <span>ADMIN</span>
           </button>
         </nav>
 
-        {/* Right: Join Button */}
+        {/* Right: Join CTA Button */}
         <div className="hidden md:flex items-center gap-4">
           <button
             type="button"
@@ -112,7 +136,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </div>
 
-        {/* Mobile Menu Toggle */}
+        {/* Mobile Menu Button */}
         <button
           type="button"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -123,29 +147,45 @@ export const Navbar: React.FC<NavbarProps> = ({
         </button>
       </div>
 
-      {/* Mobile Drawer Menu */}
+      {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden border-b border-[#123a17] bg-[#050705]/95 px-6 py-6 backdrop-blur-xl space-y-4">
           {navLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className="block font-mono text-sm font-medium tracking-wider text-[#c8f7d0] hover:text-[#00ff41]"
+            <button
+              key={link.id}
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onNavigate(link.id);
+              }}
+              className={`block w-full text-left font-mono text-sm font-medium tracking-wider ${
+                currentPage === link.id ? 'text-[#00ff41] font-bold' : 'text-[#c8f7d0]'
+              }`}
             >
               {link.name}
-            </a>
+            </button>
           ))}
           <button
             type="button"
             onClick={() => {
               setMobileMenuOpen(false);
-              onNavigateAdmin();
+              onNavigate('components');
             }}
-            className="flex items-center gap-2 font-mono text-sm text-[#00ff41] w-full text-left pt-2 border-t border-[#123a17]"
+            className="flex items-center gap-2 font-mono text-xs text-[#6fae78] w-full text-left pt-2 border-t border-[#123a17]"
           >
-            <Settings size={16} />
-            <span>{isAdminView ? 'VIEW PUBLIC SITE' : 'OPEN ADMIN CMS'}</span>
+            <Layers size={14} />
+            <span>COMPONENT LIBRARY</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              onNavigate('admin');
+            }}
+            className="flex items-center gap-2 font-mono text-xs text-[#00ff41] w-full text-left"
+          >
+            <Settings size={14} />
+            <span>ADMIN CMS DASHBOARD</span>
           </button>
           <button
             type="button"
