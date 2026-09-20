@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useData } from '../../context/DataContext';
+import { handleImageError } from '../../utils/imageFallback';
 
 /**
  * Cursor Photo Trail Component
@@ -143,7 +144,7 @@ const PhotoCard: React.FC<{
         '--cpt-duration': `${photo.duration}ms`,
       }}
     >
-      <img src={photo.img} alt="CIPHER Event Snapshot" draggable={false} loading="eager" />
+      <img src={photo.img} alt="CIPHER Event Snapshot" draggable={false} loading="eager" onError={handleImageError} />
     </div>
   );
 };

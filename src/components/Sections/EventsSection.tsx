@@ -3,6 +3,7 @@ import { Calendar, ArrowUpRight, MapPin, Image as ImageIcon, Sparkles } from 'lu
 import { EventGalleryModal } from '../Modals/EventGalleryModal';
 import { useData } from '../../context/DataContext';
 import { EventItem } from '../../types';
+import { handleImageError } from '../../utils/imageFallback';
 
 /**
  * Events & Workshops Section Component
@@ -66,6 +67,7 @@ export const EventsSection: React.FC = () => {
                       alt={event.title}
                       loading="lazy"
                       decoding="async"
+                      onError={handleImageError}
                       className="h-full w-full object-cover grayscale contrast-125 transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
                     />
                     {/* Dark gradient & scanline overlay */}
@@ -127,6 +129,7 @@ export const EventsSection: React.FC = () => {
                               alt=""
                               className="h-full w-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
                               loading="lazy"
+                              onError={handleImageError}
                             />
                           </div>
                         ))}

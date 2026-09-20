@@ -3,6 +3,7 @@ import { Calendar, Search, ArrowUpRight, Filter, MapPin, Image as ImageIcon } fr
 import { useData } from '../context/DataContext';
 import { EventItem } from '../types';
 import { EventGalleryModal } from '../components/Modals/EventGalleryModal';
+import { handleImageError } from '../utils/imageFallback';
 
 /**
  * EventsPage Component (Page 3 of 5)
@@ -125,6 +126,7 @@ export const EventsPage: React.FC = () => {
                           alt={event.title}
                           loading="lazy"
                           decoding="async"
+                          onError={handleImageError}
                           className="h-full w-full object-cover grayscale contrast-125 transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-[#080d08] via-transparent to-black/40 pointer-events-none" />
@@ -179,6 +181,7 @@ export const EventsPage: React.FC = () => {
                                   alt=""
                                   className="h-full w-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
                                   loading="lazy"
+                                  onError={handleImageError}
                                 />
                               </div>
                             ))}

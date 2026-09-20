@@ -55,7 +55,7 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'cipher_sjec_portal_data_v1';
+const STORAGE_KEY = 'cipher_sjec_portal_data_v2';
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load state from localStorage if available, or fall back to defaults

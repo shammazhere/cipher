@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight, Calendar, MapPin } from 'lucide-react';
 import { EventItem } from '../../types';
+import { handleImageError } from '../../utils/imageFallback';
 
 /**
  * Event Gallery Modal Component
@@ -111,6 +112,7 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ event, onC
                   src={images[photoIndex]}
                   alt={`${event.title} snapshot ${photoIndex + 1}`}
                   className="h-full w-full object-cover transition-opacity duration-300"
+                  onError={handleImageError}
                 />
 
                 {/* Photo Bottom Caption */}

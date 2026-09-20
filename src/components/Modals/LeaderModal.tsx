@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Github, Linkedin, Mail } from 'lucide-react';
 import { Leader } from '../../types';
+import { handleImageError } from '../../utils/imageFallback';
 
 /**
  * Leader Modal Component
@@ -49,6 +50,7 @@ export const LeaderModal: React.FC<LeaderModalProps> = ({ leader, onClose }) => 
               src={leader.image}
               alt={leader.name}
               className="h-full w-full object-cover object-top grayscale hover:grayscale-0 transition-all duration-500"
+              onError={handleImageError}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#080d08] via-[#080d08]/40 to-transparent" />
           </div>

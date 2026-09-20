@@ -16,6 +16,7 @@ import { useData } from '../context/DataContext';
 import { Leader } from '../types';
 import { MatrixRain } from '../components/Preloader/MatrixRain';
 import { LeaderModal } from '../components/Modals/LeaderModal';
+import { handleImageError } from '../utils/imageFallback';
 
 /**
  * TeamPage Component (Page 4 of 5)
@@ -101,6 +102,7 @@ export const TeamPage: React.FC = () => {
                     alt={leader.name}
                     loading="lazy"
                     decoding="async"
+                    onError={handleImageError}
                     className="relative z-10 h-full w-full object-cover object-top grayscale contrast-125 transition-transform duration-500 group-hover:scale-105 group-hover:grayscale-0"
                     draggable={false}
                   />

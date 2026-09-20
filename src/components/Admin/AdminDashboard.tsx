@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { EventItem, Leader, ArchiveItem, MemberApplication } from '../../types';
 import { useAdminCMS } from '../../hooks/useAdminCMS';
+import { handleImageError } from '../../utils/imageFallback';
 
 /**
  * Admin Dashboard & Content Management System (CMS)
@@ -266,6 +267,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                         src={ev.images[0] || '/placeholder.svg'}
                         alt={ev.title}
                         className="h-full w-full object-cover"
+                        onError={handleImageError}
                       />
                     </div>
                     <div>
@@ -391,6 +393,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                         src={leader.image}
                         alt={leader.name}
                         className="h-full w-full object-cover object-top grayscale"
+                        onError={handleImageError}
                       />
                     </div>
                     <div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Mail, Linkedin, Github, Instagram, ArrowUpRight } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import { handleImageError } from '../../utils/imageFallback';
 
 /**
  * Footer Component
@@ -39,6 +40,7 @@ export const Footer: React.FC<FooterProps> = ({ currentPage, onNavigate }) => {
               <img
                 src="/images/cipher-logo.png"
                 alt="CIPHER Emblem"
+                onError={handleImageError}
                 className="h-9 w-auto object-contain drop-shadow-[0_0_8px_rgba(0,255,65,0.4)]"
               />
               <span className="font-mono text-2xl font-bold tracking-wider text-[#00ff41] text-glow">
