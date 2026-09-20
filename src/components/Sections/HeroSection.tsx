@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Calendar } from 'lucide-react';
+import { ArrowRight, Calendar, ShieldCheck, Cpu, Terminal } from 'lucide-react';
 import { AsciiCipherHero } from '../Canvas/AsciiCipherHero';
 import { useData } from '../../context/DataContext';
 
@@ -10,7 +10,7 @@ import { useData } from '../../context/DataContext';
  * Non-technical explanation:
  * The very first section visitors see at the top of the homepage:
  * - Shows the interactive ASCII "CIPHER" banner.
- * - Displays the official CSE association title.
+ * - Displays the official CSE association title and telemetry status chips.
  * - Includes two primary buttons to either apply or explore events.
  */
 
@@ -24,7 +24,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenJoin }) => {
   return (
     <section
       id="top"
-      className="relative flex min-h-screen flex-col items-center justify-between overflow-hidden pt-24 pb-16"
+      className="relative flex min-h-screen flex-col items-center justify-between overflow-hidden pt-24 pb-16 font-mono"
     >
       {/* Interactive ASCII CIPHER Canvas */}
       <div className="relative w-full max-w-7xl px-4 pt-4 sm:pt-8">
@@ -33,6 +33,18 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenJoin }) => {
 
       {/* Main Copy & Action Buttons */}
       <div className="relative mx-auto w-full max-w-6xl px-6 lg:px-10 mt-6 md:mt-12">
+        {/* Floating Telemetry Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#123a17] bg-[#080d08]/80 px-3.5 py-1 text-[11px] text-[#00ff41] backdrop-blur-md shadow-[0_0_15px_rgba(0,255,65,0.15)]"
+        >
+          <span className="flex h-2 w-2 rounded-full bg-[#00ff41] animate-ping" />
+          <Terminal size={12} />
+          <span>PORTAL VER 2.6.4 // NODE_SJEC_CSE</span>
+        </motion.div>
+
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -82,12 +94,25 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenJoin }) => {
       </div>
 
       {/* Decorative Terminal Status Indicator */}
-      <div className="mx-auto mt-12 w-full max-w-6xl px-6 lg:px-10 flex items-center justify-between text-xs font-mono text-[#2c7a3a]">
-        <span className="flex items-center gap-2">
-          <span className="inline-block h-2 w-2 rounded-full bg-[#00ff41] animate-ping" />
-          SYSTEM STATUS: ONLINE // NODE_SJEC
-        </span>
-        <span className="hidden sm:inline">DEPT OF CSE · EST 2026</span>
+      <div className="mx-auto mt-12 w-full max-w-6xl px-6 lg:px-10 flex items-center justify-between flex-wrap gap-4 text-xs font-mono text-[#2c7a3a]">
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-2 text-[#00ff41]">
+            <span className="inline-block h-2 w-2 rounded-full bg-[#00ff41] animate-ping" />
+            SYSTEM STATUS: ONLINE
+          </span>
+          <span className="hidden md:inline text-[#123a17]">|</span>
+          <span className="hidden md:flex items-center gap-1 text-[#6fae78]">
+            <Cpu size={12} />
+            GEO: 12.8797° N, 74.9248° E · VAMANJOOR
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="rounded border border-[#123a17] bg-[#050705] px-2 py-0.5 text-[10px] text-[#6fae78]">
+            VTU AFFILIATED · NAAC A+
+          </span>
+          <span className="hidden sm:inline">DEPT OF CSE · EST 2026</span>
+        </div>
       </div>
     </section>
   );

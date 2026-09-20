@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ArrowUpRight, Key } from 'lucide-react';
 import { BackdoorModal } from '../Modals/BackdoorModal';
 import { useData } from '../../context/DataContext';
@@ -9,12 +9,38 @@ import { useData } from '../../context/DataContext';
  * Non-technical explanation:
  * Displays the complete numbered list of all past workshops, seminars, and visits
  * organized by CIPHER (e.g. Applied Machine Learning, Solidity, RPA, etc.).
- * Also contains the secret backdoor link at the bottom!
+ * Features category filtering chips and the secret backdoor link at the bottom!
  */
 
 export const ArchiveGrid: React.FC = () => {
   const { archive } = useData();
   const [backdoorOpen, setBackdoorOpen] = useState(false);
+  const [filter, setFilter] = useState<'ALL' | 'AI' | 'WEB3' | 'CAREER'>('ALL');
+
+  const getCategory = (title: string): string => {
+    const t = title.toLowerCase();
+    if (t.includes('machine learning') || t.includes('ai') || t.includes('learning') || t.includes('latex')) {
+      return 'AI & RESEARCH';
+    }
+    if (t.includes('solidity') || t.includes('blockchain') || t.includes('cloud') || t.includes('devops') || t.includes('rpa')) {
+      return 'WEB3 & CLOUD';
+    }
+    if (t.includes('interview') || t.includes('alumni') || t.includes('talk') || t.includes('connect') || t.includes('soft skills')) {
+      return 'CAREER & ALUMNI';
+    }
+    return 'TECH WORKSHOP';
+  };
+
+  const filteredItems = useMemo(() => {
+    if (filter === 'ALL') return archive;
+    return archive.filter((item) => {
+      const cat = getCategory(item.title);
+      if (filter === 'AI') return cat.includes('AI');
+      if (filter === 'WEB3') return cat.includes('WEB3');
+      if (filter === 'CAREER') return cat.includes('CAREER');
+      return true;
+    });
+  }, [archive, filter]);
 
   return (
     <section id="archive" className="relative border-t border-[#123a17] py-24 md:py-32">
@@ -33,31 +59,79 @@ export const ArchiveGrid: React.FC = () => {
           Hands-on workshops, industrial visits, and technical sessions run by the Cipher Association — spanning AI, blockchain, research tooling, and career prep.
         </p>
 
-        {/* 3-Column Dense Monospace Grid */}
-        <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {archive.map((item) => (
-            <a
-              key={item.id}
-              href={item.href || `https://sjec.ac.in/cipher/activity/${item.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-center justify-between rounded-lg border border-[#123a17] bg-[#080d08]/60 p-4.5 transition-all duration-200 hover:border-[#00ff41] hover:bg-[#0e1613] hover:shadow-[0_0_20px_rgba(0,255,65,0.18)]"
-              data-cursor="lens"
-            >
-              <div className="flex items-center gap-3.5 min-w-0">
-                <span className="font-mono text-xs font-semibold text-[#00ff41] opacity-75">
-                  {item.id}
-                </span>
-                <span className="font-mono text-xs font-medium text-[#c8f7d0] truncate group-hover:text-[#00ff41] transition-colors">
-                  {item.title}
-                </span>
-              </div>
-              <ArrowUpRight
-                size={15}
-                className="text-[#6fae78] shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[#00ff41]"
-              />
-            </a>
-          ))}
+        {/* Interactive Filter Chips Bar */}
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-b border-[#123a17] pb-5">
+          <div className="flex flex-wrap items-center gap-2">
+            {([
+              { id: 'ALL', label: 'All Activities' },
+              { id: 'AI', label: 'AI & Machine Learning' },
+              { id: 'WEB3', label: 'Web3 & Blockchain' },
+              { id: 'CAREER', label: 'Career & Industry' },
+            ] as const).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFilter(tab.id)}
+                className={`rounded px-3 py-1.5 font-mono text-xs font-medium uppercase tracking-wider transition-all ${
+                  filter === tab.id
+                    ? 'border border-[#00ff41] bg-[#00ff41]/15 text-[#00ff41] shadow-[0_0_12px_rgba(0,255,65,0.25)]'
+                    : 'border border-[#123a17] bg-[#080d08] text-[#6fae78] hover:border-[#00ff41]/40 hover:text-[#c8f7d0]'
+                }`}
+                data-cursor="lens"
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <span className="font-mono text-[11px] text-[#2c7a3a]">
+            SHOWING {filteredItems.length} OF {archive.length} ENTRIES
+          </span>
+        </div>
+
+        {/* 3-Column Dense Monospace Grid with Cyber Accents */}
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredItems.map((item) => {
+            const category = getCategory(item.title);
+
+            return (
+              <a
+                key={item.id}
+                href={item.href || `https://sjec.ac.in/cipher/activity/${item.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-[#123a17] bg-[#080d08]/85 p-4.5 transition-all duration-300 hover:border-[#00ff41] hover:bg-[#0c140d] hover:shadow-[0_0_22px_rgba(0,255,65,0.2)] hover:-translate-y-0.5"
+                data-cursor="lens"
+              >
+                {/* Left Active Glow Bar */}
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-[#00ff41] group-hover:shadow-[0_0_8px_#00ff41] transition-all" />
+
+                <div className="flex items-center gap-3.5 min-w-0 pl-1">
+                  <span className="font-mono text-xs font-bold text-[#00ff41] opacity-75">
+                    {item.id}
+                  </span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-mono text-xs font-medium text-[#c8f7d0] truncate group-hover:text-[#00ff41] transition-colors">
+                      {item.title}
+                    </span>
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-[#2c7a3a] group-hover:text-[#6fae78] transition-colors mt-0.5">
+                      {category}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="hidden sm:inline-block rounded bg-[#050705] border border-[#123a17] px-1.5 py-0.5 text-[8px] uppercase text-[#6fae78] group-hover:border-[#00ff41]/30">
+                    LOG
+                  </span>
+                  <ArrowUpRight
+                    size={15}
+                    className="text-[#6fae78] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[#00ff41]"
+                  />
+                </div>
+              </a>
+            );
+          })}
         </div>
 
         {/* Secret Backdoor Easter Egg Trigger Link */}
