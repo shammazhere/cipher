@@ -1,80 +1,33 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Send, CheckCircle2, ShieldCheck, AlertCircle, HelpCircle, Mail, MapPin } from 'lucide-react';
-import { sanitizeInput, isValidEmail, isValidUSN, truncateSafe } from '../utils/sanitize';
 import { useData } from '../context/DataContext';
+import { useSecureForm } from '../hooks/useSecureForm';
 
 /**
  * JoinPage Component (Page 5 of 5)
  * 
  * Non-technical explanation:
  * Dedicated standalone application and contact page.
- * Contains the full membership registration form, club domain descriptions,
- * applicant FAQs, and official contact information for SJEC students.
+ * Powered by the useSecureForm hook for XSS protection, anti-bot honeypot filtering,
+ * USN/email validation, and spam rate-limiting.
  */
 
 export const JoinPage: React.FC = () => {
   const { siteConfig, addApplication } = useData();
 
-  const [formData, setFormData] = useState({
-    name: '',
-    usn: '',
-    email: '',
-    semester: '3rd Semester',
-    domain: 'Technical & Development',
-    message: '',
+  const {
+    formData,
+    errors,
+    isSubmitting,
+    isSuccess,
+    handleChange,
+    handleSubmit,
+    resetForm,
+  } = useSecureForm({
+    onSuccess: (cleanData) => {
+      addApplication(cleanData);
+    },
   });
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-
-  const validate = () => {
-    const errs: Record<string, string> = {};
-
-    if (!formData.name.trim()) errs.name = 'Full name is required.';
-    if (!formData.email.trim()) {
-      errs.email = 'Email address is required.';
-    } else if (!isValidEmail(formData.email)) {
-      errs.email = 'Please provide a valid email format.';
-    }
-    if (formData.usn && !isValidUSN(formData.usn)) {
-      errs.usn = 'USN should look like 4SO22CS001.';
-    }
-    if (!formData.message.trim()) {
-      errs.message = 'Please provide a brief statement of interest.';
-    }
-
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-
-    setIsSubmitting(true);
-
-    const cleanName = sanitizeInput(formData.name);
-    const cleanUsn = sanitizeInput(formData.usn);
-    const cleanEmail = sanitizeInput(formData.email);
-    const cleanSemester = sanitizeInput(formData.semester);
-    const cleanDomain = sanitizeInput(formData.domain);
-    const cleanMessage = sanitizeInput(truncateSafe(formData.message, 1000));
-
-    setTimeout(() => {
-      addApplication({
-        name: cleanName,
-        usn: cleanUsn,
-        email: cleanEmail,
-        semester: cleanSemester,
-        domain: cleanDomain,
-        message: cleanMessage,
-      });
-
-      setIsSubmitting(false);
-      setIsSuccess(true);
-    }, 600);
-  };
 
   return (
     <div className="min-h-screen pt-28 pb-24 font-mono">
@@ -109,17 +62,7 @@ export const JoinPage: React.FC = () => {
                 <div className="pt-4">
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsSuccess(false);
-                      setFormData({
-                        name: '',
-                        usn: '',
-                        email: '',
-                        semester: '3rd Semester',
-                        domain: 'Technical & Development',
-                        message: '',
-                      });
-                    }}
+                    onClick={resetForm}
                     className="rounded border border-[#00ff41] bg-[#00ff41] px-6 py-2.5 text-xs font-bold text-[#050705] hover:bg-[#00ff66]"
                   >
                     SUBMIT ANOTHER RESPONSE
@@ -133,6 +76,25 @@ export const JoinPage: React.FC = () => {
                   <span>SECURE REGISTRATION FORM</span>
                 </div>
 
+                {errors.general && (
+                  <div className="flex items-center gap-2 p-3 rounded border border-[#ff5f56]/40 bg-[#ff5f56]/10 text-xs text-[#ff5f56]">
+                    <AlertCircle size={14} />
+                    <span>{errors.general}</span>
+                  </div>
+                )}
+
+                {/* Anti-Bot Security Honeypot (Hidden from humans, catches bots) */}
+                <input
+                  type="text"
+                  name="_honeypot"
+                  value={formData._honeypot}
+                  onChange={(e) => handleChange('_honeypot', e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  className="hidden opacity-0 absolute -top-9999px -left-9999px pointer-events-none"
+                />
+
                 <div>
                   <label className="block text-xs uppercase text-[#c8f7d0] mb-1">
                     Full Name <span className="text-[#00ff41]">*</span>
@@ -140,7 +102,7 @@ export const JoinPage: React.FC = () => {
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => handleChange('name', e.target.value)}
                     placeholder="e.g. Jane Doe"
                     className="w-full rounded border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] focus:border-[#00ff41] focus:outline-none"
                   />
@@ -159,7 +121,7 @@ export const JoinPage: React.FC = () => {
                     <input
                       type="text"
                       value={formData.usn}
-                      onChange={(e) => setFormData({ ...formData, usn: e.target.value.toUpperCase() })}
+                      onChange={(e) => handleChange('usn', e.target.value.toUpperCase())}
                       placeholder="4SO22CS..."
                       className="w-full rounded border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] focus:border-[#00ff41] focus:outline-none"
                     />
@@ -177,7 +139,7 @@ export const JoinPage: React.FC = () => {
                     <input
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) => handleChange('email', e.target.value)}
                       placeholder="student@sjec.ac.in"
                       className="w-full rounded border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] focus:border-[#00ff41] focus:outline-none"
                     />
@@ -196,7 +158,7 @@ export const JoinPage: React.FC = () => {
                     </label>
                     <select
                       value={formData.semester}
-                      onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
+                      onChange={(e) => handleChange('semester', e.target.value)}
                       className="w-full rounded border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] focus:border-[#00ff41] focus:outline-none"
                     >
                       <option value="1st Semester">1st Semester</option>
@@ -215,7 +177,7 @@ export const JoinPage: React.FC = () => {
                     </label>
                     <select
                       value={formData.domain}
-                      onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
+                      onChange={(e) => handleChange('domain', e.target.value)}
                       className="w-full rounded border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] focus:border-[#00ff41] focus:outline-none"
                     >
                       <option value="Technical & Development">Technical &amp; Development</option>
@@ -234,7 +196,7 @@ export const JoinPage: React.FC = () => {
                   <textarea
                     rows={4}
                     value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    onChange={(e) => handleChange('message', e.target.value)}
                     placeholder="Tell us what you want to learn, your background, or what you hope to build..."
                     className="w-full rounded border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] focus:border-[#00ff41] focus:outline-none resize-none"
                   />
