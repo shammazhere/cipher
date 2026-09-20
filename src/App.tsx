@@ -8,6 +8,8 @@ import { Navbar } from './components/UI/Navbar';
 import { Footer } from './components/UI/Footer';
 import { JoinModal } from './components/Modals/JoinModal';
 
+import { usePageSEO } from './hooks/usePageSEO';
+
 // 5 Mandatory Pages + Component Library + Admin CMS
 import { HomePage } from './pages/HomePage';
 import { AboutPage } from './pages/AboutPage';
@@ -46,6 +48,9 @@ export const AppContent: React.FC = () => {
   });
 
   const [isJoinModalOpen, setIsJoinModalOpen] = useState<boolean>(false);
+
+  // Dynamically synchronize document title, OpenGraph tags, and meta descriptions per route
+  usePageSEO(currentPage);
 
   // Sync hash in URL with page state for browser back/forward and shareable links
   useEffect(() => {
