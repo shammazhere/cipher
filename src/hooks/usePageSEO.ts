@@ -59,6 +59,12 @@ const PAGE_SEO_METADATA: Record<string, SEOConfig> = {
     keywords: 'Admin CMS, Content Management, Event Manager, CIPHER Portal',
     canonicalPath: '#admin',
   },
+  '404': {
+    title: '404 — Sector Not Found // Terminal Offline | CIPHER SJEC',
+    description: 'The requested sector coordinates could not be located in the CIPHER node index. Re-route to home base or review verified event channels.',
+    keywords: '404, Not Found, CIPHER SJEC, Computer Science',
+    canonicalPath: '#404',
+  },
 };
 
 export function usePageSEO(currentPage: string) {
