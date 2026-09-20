@@ -48,6 +48,8 @@ export const TeamPage: React.FC = () => {
                 <img
                   src={leader.image}
                   alt={leader.name}
+                  loading="lazy"
+                  decoding="async"
                   className="relative z-10 h-full w-full object-cover object-top grayscale contrast-125 transition-transform duration-500 group-hover:scale-105 group-hover:grayscale-0"
                   draggable={false}
                 />

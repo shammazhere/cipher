@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { SimplexNoise } from '../../utils/simplexNoise';
+import { useInViewAnimation } from '../../hooks/useInViewAnimation';
 
 /**
  * Topography Canvas Component
@@ -7,6 +8,8 @@ import { SimplexNoise } from '../../utils/simplexNoise';
  * Non-technical explanation:
  * Renders the flowing 60 FPS topological wireframe lines seen behind the
  * CIPHER sections. It looks like a high-tech topographic radar map.
+ * Optimized with useInViewAnimation to automatically pause when offscreen
+ * or when the user switches tabs to conserve CPU and GPU power.
  */
 
 interface TopographyCanvasProps {
@@ -24,6 +27,12 @@ export const TopographyCanvas: React.FC<TopographyCanvasProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const { shouldAnimate } = useInViewAnimation(containerRef);
+  const shouldAnimateRef = useRef(shouldAnimate);
+
+  useEffect(() => {
+    shouldAnimateRef.current = shouldAnimate;
+  }, [shouldAnimate]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -100,6 +109,11 @@ export const TopographyCanvas: React.FC<TopographyCanvasProps> = ({
     };
 
     const render = (time: number) => {
+      if (!shouldAnimateRef.current) {
+        animationFrameId = requestAnimationFrame(render);
+        return;
+      }
+
       ctx.clearRect(0, 0, width, height);
       updateWaves(time);
 
