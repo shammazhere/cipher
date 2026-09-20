@@ -1,24 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Settings, Layers } from 'lucide-react';
+import { Menu, X, Settings, Layers, Search } from 'lucide-react';
+import { handleImageError } from '../../utils/imageFallback';
 
 /**
  * Navbar Component
  * 
  * Non-technical explanation:
  * Top navigation bar connecting all 5 mandatory pages (Home, About, Events, Team, Join),
- * plus shortcuts to the Component Library and the Admin CMS dashboard.
+ * plus shortcuts to the Component Library, Command Palette, and the Admin CMS dashboard.
  */
 
 interface NavbarProps {
   currentPage: string;
   onNavigate: (page: string) => void;
   onOpenJoin: () => void;
+  onOpenCommandPalette?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   currentPage,
   onNavigate,
   onOpenJoin,
+  onOpenCommandPalette,
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -59,6 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             src="/images/cipher-logo.png"
             alt="CIPHER Emblem"
             className="h-10 w-auto object-contain drop-shadow-[0_0_10px_rgba(0,255,65,0.4)]"
+            onError={handleImageError}
           />
           <div className="flex flex-col">
             <span className="font-mono text-base font-bold tracking-wider text-[#00ff41] text-glow">
@@ -124,8 +128,22 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </nav>
 
-        {/* Right: Join CTA Button */}
-        <div className="hidden md:flex items-center gap-4">
+        {/* Right: Search + Join CTA Button */}
+        <div className="hidden md:flex items-center gap-3">
+          {onOpenCommandPalette && (
+            <button
+              type="button"
+              onClick={onOpenCommandPalette}
+              aria-label="Open Command Palette (Ctrl+K)"
+              className="flex items-center gap-2 rounded border border-[#123a17] bg-[#080d08] px-3 py-1.5 font-mono text-xs text-[#6fae78] transition-all duration-200 hover:border-[#00ff41]/50 hover:text-[#00ff41]"
+              data-cursor="lens"
+              title="Command Palette (Ctrl+K)"
+            >
+              <Search size={13} className="text-[#00ff41]" />
+              <span className="text-[10px] text-[#2c7a3a] border border-[#123a17] px-1 rounded">⌘K</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={onOpenJoin}
@@ -165,13 +183,26 @@ export const Navbar: React.FC<NavbarProps> = ({
               {link.name}
             </button>
           ))}
+          {onOpenCommandPalette && (
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onOpenCommandPalette();
+              }}
+              className="flex items-center gap-2 font-mono text-xs text-[#6fae78] w-full text-left pt-2 border-t border-[#123a17]"
+            >
+              <Search size={14} className="text-[#00ff41]" />
+              <span>COMMAND PALETTE (CTRL+K)</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
               setMobileMenuOpen(false);
               onNavigate('components');
             }}
-            className="flex items-center gap-2 font-mono text-xs text-[#6fae78] w-full text-left pt-2 border-t border-[#123a17]"
+            className="flex items-center gap-2 font-mono text-xs text-[#6fae78] w-full text-left"
           >
             <Layers size={14} />
             <span>COMPONENT LIBRARY</span>

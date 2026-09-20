@@ -6,17 +6,21 @@ import { CustomCursor } from './components/UI/CustomCursor';
 import { Navbar } from './components/UI/Navbar';
 import { Footer } from './components/UI/Footer';
 import { JoinModal } from './components/Modals/JoinModal';
+import { ErrorBoundary } from './components/UI/ErrorBoundary';
+import { BackToTop } from './components/UI/BackToTop';
+import { CommandPalette } from './components/UI/CommandPalette';
 
 import { usePageSEO } from './hooks/usePageSEO';
 import { useAdminAuth } from './hooks/useAdminAuth';
 import { useSmoothScroll } from './hooks/useSmoothScroll';
 
-// 5 Core Pages (Instant Load)
+// 5 Core Pages (Instant Load) + 404 Cyber Fallback
 import { HomePage } from './pages/HomePage';
 import { AboutPage } from './pages/AboutPage';
 import { EventsPage } from './pages/EventsPage';
 import { TeamPage } from './pages/TeamPage';
 import { JoinPage } from './pages/JoinPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 
 // Lazy Loaded Heavy Modules (Code-split for blazing-fast initial bundle)
 const ComponentLibraryPage = lazy(() =>
@@ -44,14 +48,35 @@ const CyberModuleLoader: React.FC<{ label: string }> = ({ label }) => (
   </div>
 );
 
+const VALID_ROUTES = ['home', 'about', 'events', 'team', 'join', 'components', 'admin'];
+
+/**
+ * Resolves current route from either hash or pathname with 404 fallback
+ */
+const resolveCurrentRoute = (): string => {
+  try {
+    const hash = window.location.hash.replace('#', '').replace(/^\/+/, '').toLowerCase();
+    if (hash) {
+      return VALID_ROUTES.includes(hash) ? hash : '404';
+    }
+    const path = window.location.pathname.replace(/^\/+/, '').toLowerCase();
+    if (path) {
+      return VALID_ROUTES.includes(path) ? path : '404';
+    }
+    return 'home';
+  } catch {
+    return 'home';
+  }
+};
+
 /**
  * Main Application Coordinator
  * 
  * Non-technical explanation:
  * Coordinates the 5 mandatory pages, handles route code-splitting for fast load times,
- * manages the preloader state, and provides buttery-smooth inertial scrolling.
+ * manages the preloader state, provides buttery-smooth inertial scrolling,
+ * and hosts the global 404 handler and Command Palette (Ctrl+K).
  */
-
 export const AppContent: React.FC = () => {
   // Preloader seen state in sessionStorage
   const [bootSeen, setBootSeen] = useState<boolean>(() => {
@@ -62,16 +87,11 @@ export const AppContent: React.FC = () => {
     }
   });
 
-  // Current active page: 'home' | 'about' | 'events' | 'team' | 'join' | 'components' | 'admin'
-  const [currentPage, setCurrentPage] = useState<string>(() => {
-    const hash = window.location.hash.replace('#', '').replace('/', '').toLowerCase();
-    if (['home', 'about', 'events', 'team', 'join', 'components', 'admin'].includes(hash)) {
-      return hash;
-    }
-    return 'home';
-  });
+  // Current active page with 404 fallback
+  const [currentPage, setCurrentPage] = useState<string>(resolveCurrentRoute);
 
   const [isJoinModalOpen, setIsJoinModalOpen] = useState<boolean>(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false);
   const { isAuthenticated, logout: handleAdminLogout } = useAdminAuth();
 
   // Dynamically synchronize document title, OpenGraph tags, and meta descriptions per route
@@ -80,21 +100,32 @@ export const AppContent: React.FC = () => {
   // Buttery-smooth inertial scroll powered by Lenis
   useSmoothScroll({
     disabled: currentPage === 'admin',
-    isModalOpen: isJoinModalOpen || !bootSeen,
+    isModalOpen: isJoinModalOpen || isCommandPaletteOpen || !bootSeen,
   });
+
+  // Global Ctrl+K / Cmd+K listener for Command Palette
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   // Sync hash in URL with page state for browser back/forward and shareable links
   useEffect(() => {
-    const onHashChange = () => {
-      const hash = window.location.hash.replace('#', '').replace('/', '').toLowerCase();
-      if (['home', 'about', 'events', 'team', 'join', 'components', 'admin'].includes(hash)) {
-        setCurrentPage(hash);
-      } else if (!hash) {
-        setCurrentPage('home');
-      }
+    const handleRouteChange = () => {
+      setCurrentPage(resolveCurrentRoute());
     };
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
+    window.addEventListener('hashchange', handleRouteChange);
+    window.addEventListener('popstate', handleRouteChange);
+    return () => {
+      window.removeEventListener('hashchange', handleRouteChange);
+      window.removeEventListener('popstate', handleRouteChange);
+    };
   }, []);
 
   const navigateTo = (page: string) => {
@@ -147,9 +178,10 @@ export const AppContent: React.FC = () => {
             currentPage={currentPage}
             onNavigate={navigateTo}
             onOpenJoin={() => setIsJoinModalOpen(true)}
+            onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
           />
 
-          {/* Main View Router: 5 Mandatory Pages + Component Library */}
+          {/* Main View Router: 5 Mandatory Pages + Component Library + 404 */}
           <main id="main-content" className="relative z-10">
             {currentPage === 'home' && (
               <HomePage onOpenJoin={() => setIsJoinModalOpen(true)} />
@@ -163,6 +195,9 @@ export const AppContent: React.FC = () => {
                 <ComponentLibraryPage />
               </Suspense>
             )}
+            {currentPage === '404' && (
+              <NotFoundPage onNavigate={navigateTo} />
+            )}
           </main>
 
           {/* Site Footer with interactive clickable links */}
@@ -173,6 +208,17 @@ export const AppContent: React.FC = () => {
             isOpen={isJoinModalOpen}
             onClose={() => setIsJoinModalOpen(false)}
           />
+
+          {/* Floating Back to Top Button */}
+          <BackToTop />
+
+          {/* Global Command Palette (Ctrl+K / Cmd+K) */}
+          <CommandPalette
+            isOpen={isCommandPaletteOpen}
+            onClose={() => setIsCommandPaletteOpen(false)}
+            onNavigate={navigateTo}
+            onOpenJoin={() => setIsJoinModalOpen(true)}
+          />
         </>
       )}
     </div>
@@ -181,9 +227,12 @@ export const AppContent: React.FC = () => {
 
 export default function App() {
   return (
-    <DataProvider>
-      <AppContent />
-    </DataProvider>
+    <ErrorBoundary>
+      <DataProvider>
+        <AppContent />
+      </DataProvider>
+    </ErrorBoundary>
   );
 }
+
 

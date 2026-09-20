@@ -184,3 +184,47 @@ html.lenis, html.lenis body {
     transform: rotate(var(--cpt-rot)) scale(0.9) translateY(-14px);
   }
 }
+
+/* =============================================================================
+   ACCESSIBILITY & COMPETITION POLISH
+   ============================================================================= */
+
+/* Keyboard Navigation Focus Outline */
+:focus-visible {
+  outline: 2px solid #00ff41 !important;
+  outline-offset: 3px !important;
+}
+
+/* WCAG Reduced Motion Accommodation */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .cpt-zone {
+    display: none !important;
+  }
+}
+
+/* Print Styles for Technical Dossier / Evaluation Export */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .cpt-zone,
+  canvas,
+  .cipher-custom-cursor,
+  button,
+  nav {
+    display: none !important;
+  }
+  main {
+    margin-top: 0 !important;
+  }
+}
+
