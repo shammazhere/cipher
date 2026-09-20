@@ -17,6 +17,7 @@ import {
   Settings as SettingsIcon,
   X,
   ExternalLink,
+  LogOut,
 } from 'lucide-react';
 import { EventItem, Leader, ArchiveItem, MemberApplication } from '../../types';
 import { useAdminCMS } from '../../hooks/useAdminCMS';
@@ -32,9 +33,10 @@ import { useAdminCMS } from '../../hooks/useAdminCMS';
 
 interface AdminDashboardProps {
   onBackToSite: () => void;
+  onLogout?: () => void;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, onLogout }) => {
   const {
     events,
     leadership,
@@ -153,6 +155,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite }) 
               <Eye size={13} />
               <span>PUBLIC SITE</span>
             </button>
+
+            {/* Logout button */}
+            {onLogout && (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="flex items-center gap-1.5 rounded border border-[#123a17] bg-[#080d08] px-3 py-1.5 text-xs text-[#6fae78] hover:border-[#ff5f56] hover:text-[#ff5f56] transition-colors"
+                title="Log out of the Admin panel"
+              >
+                <LogOut size={13} />
+                <span className="hidden sm:inline">LOGOUT</span>
+              </button>
+            )}
           </div>
         </div>
 

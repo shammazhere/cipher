@@ -9,6 +9,7 @@ import { Footer } from './components/UI/Footer';
 import { JoinModal } from './components/Modals/JoinModal';
 
 import { usePageSEO } from './hooks/usePageSEO';
+import { useAdminAuth } from './hooks/useAdminAuth';
 
 // 5 Mandatory Pages + Component Library + Admin CMS
 import { HomePage } from './pages/HomePage';
@@ -18,6 +19,7 @@ import { TeamPage } from './pages/TeamPage';
 import { JoinPage } from './pages/JoinPage';
 import { ComponentLibraryPage } from './pages/ComponentLibraryPage';
 import { AdminDashboard } from './components/Admin/AdminDashboard';
+import { AdminAuthGate } from './components/Admin/AdminAuthGate';
 
 /**
  * Main Application Coordinator
@@ -48,6 +50,7 @@ export const AppContent: React.FC = () => {
   });
 
   const [isJoinModalOpen, setIsJoinModalOpen] = useState<boolean>(false);
+  const { isAuthenticated, logout: handleAdminLogout } = useAdminAuth();
 
   // Dynamically synchronize document title, OpenGraph tags, and meta descriptions per route
   usePageSEO(currentPage);
@@ -106,9 +109,19 @@ export const AppContent: React.FC = () => {
         <MatrixBoot onComplete={() => setBootSeen(true)} />
       )}
 
-      {/* ADMIN CMS VIEW */}
+      {/* ADMIN CMS VIEW WITH AUTHENTICATION GATE */}
       {currentPage === 'admin' ? (
-        <AdminDashboard onBackToSite={() => navigateTo('home')} />
+        !isAuthenticated ? (
+          <AdminAuthGate
+            onAuthenticated={() => {}}
+            onCancel={() => navigateTo('home')}
+          />
+        ) : (
+          <AdminDashboard
+            onBackToSite={() => navigateTo('home')}
+            onLogout={handleAdminLogout}
+          />
+        )
       ) : (
         /* PUBLIC SITE VIEW */
         <>
