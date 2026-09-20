@@ -1,0 +1,52 @@
+[
+  {
+    "id": "elston",
+    "name": "Elston Herold Pereira",
+    "role": "President",
+    "image": "/leadership/president.png",
+    "bio": "Leading CIPHER with a focus on student-driven innovation, technical hackathons, and fostering an active engineering community in the CSE department.",
+    "github": "https://github.com",
+    "linkedin": "https://linkedin.com",
+    "email": "elston.cip@sjec.ac.in"
+  },
+  {
+    "id": "raynell",
+    "name": "Raynell Lewis",
+    "role": "Vice President",
+    "image": "/leadership/vice-president.png",
+    "bio": "Coordinating inter-departmental tech symposiums, workshop curriculum planning, and industry liaison activities.",
+    "github": "https://github.com",
+    "linkedin": "https://linkedin.com",
+    "email": "raynell.cip@sjec.ac.in"
+  },
+  {
+    "id": "chaitra",
+    "name": "Chaitra R M",
+    "role": "Secretary",
+    "image": "/leadership/secretary.png",
+    "bio": "Managing official communications, student registrations, documentation, and executive proceedings for all association tracks.",
+    "github": "https://github.com",
+    "linkedin": "https://linkedin.com",
+    "email": "chaitra.cip@sjec.ac.in"
+  },
+  {
+    "id": "nazmin",
+    "name": "Nazmin Ziya",
+    "role": "Treasurer",
+    "image": "/leadership/treasurer.png",
+    "bio": "Overseeing financial allocations, event budgets, sponsorship receipts, and funding audits for Cipher events.",
+    "github": "https://github.com",
+    "linkedin": "https://linkedin.com",
+    "email": "nazmin.cip@sjec.ac.in"
+  },
+  {
+    "id": "jeslin",
+    "name": "Jeslin Ninora",
+    "role": "Joint Treasurer",
+    "image": "/leadership/joint-treasurer.png",
+    "bio": "Assisting in financial management, procurement of workshop equipment, and student activity fund distribution.",
+    "github": "https://github.com",
+    "linkedin": "https://linkedin.com",
+    "email": "jeslin.cip@sjec.ac.in"
+  }
+]

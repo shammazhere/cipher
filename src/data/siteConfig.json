@@ -1,0 +1,26 @@
+{
+  "name": "CIPHER",
+  "fullName": "Student Association of Computer Science & Engineering",
+  "college": "St. Joseph Engineering College (SJEC)",
+  "department": "Department of Computer Science & Engineering",
+  "tagline": "Bridging academic knowledge and practical application — a community of aspiring professionals in computing.",
+  "aboutText": "CIPHER is the student association of the Department of Computer Science & Engineering. It serves as a platform for students to nurture their technical and interpersonal skills through innovative and collaborative activities. The association strives to bridge the gap between academic knowledge and practical application, fostering a community of aspiring professionals dedicated to excellence in computing.",
+  "joinSubtitle": "Whether you want to build, lead, or simply learn — CIPHER is where CSE students turn curiosity into capability. Join the community and help shape what comes next.",
+  "copyrightYear": 2026,
+  "socialLinks": {
+    "email": "cipher@sjec.ac.in",
+    "linkedin": "https://linkedin.com",
+    "github": "https://github.com",
+    "instagram": "https://instagram.com"
+  },
+  "trailImages": [
+    "/images/trail/1.jpg",
+    "/images/trail/2.jpg",
+    "/images/trail/3.jpg",
+    "/images/trail/4.jpg",
+    "/images/trail/5.jpg",
+    "/images/trail/6.jpg",
+    "/images/trail/7.jpg",
+    "/images/trail/8.jpg"
+  ]
+}

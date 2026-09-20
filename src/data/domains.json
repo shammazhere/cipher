@@ -1,0 +1,30 @@
+[
+  {
+    "id": "technical",
+    "title": "Technical Skill Building",
+    "desc": "Hands-on workshops, coding sessions, and tech talks that turn theory into working software.",
+    "sessions": 5,
+    "icon": "code"
+  },
+  {
+    "id": "leadership",
+    "title": "Leadership & Governance",
+    "desc": "Annual elections for President, Secretary, and office bearers — guided by the HOD and Faculty Coordinator.",
+    "sessions": 3,
+    "icon": "shield"
+  },
+  {
+    "id": "events",
+    "title": "Events & Collaboration",
+    "desc": "Hackathons, seminars, and department-level competitions that bring students together.",
+    "sessions": 8,
+    "icon": "users"
+  },
+  {
+    "id": "industry",
+    "title": "Industry Readiness",
+    "desc": "Bridging classroom learning with real-world application to prepare students for the computing industry.",
+    "sessions": 4,
+    "icon": "briefcase"
+  }
+]
