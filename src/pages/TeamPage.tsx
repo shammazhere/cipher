@@ -83,73 +83,86 @@ export const TeamPage: React.FC = () => {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {leadership.map((leader) => (
-              <div
-                key={leader.id}
-                onClick={() => setSelectedLeader(leader)}
-                className="group relative flex flex-col overflow-hidden rounded-xl border border-[#123a17] bg-[#080d08] transition-all duration-300 hover:border-[#00ff41] hover:shadow-[0_0_30px_rgba(0,255,65,0.25)] hover:-translate-y-1 cursor-pointer"
-                data-cursor="lens"
-              >
-                {/* Cyber Reticles */}
-                <span className="absolute top-2 left-2 z-20 font-mono text-[9px] text-[#00ff41]/40 select-none group-hover:text-[#00ff41]">+</span>
-                <span className="absolute top-2 right-2 z-20 font-mono text-[9px] text-[#00ff41]/40 select-none group-hover:text-[#00ff41]">+</span>
+          {/* Continuous Infinite Right-to-Left Loop Marquee */}
+          <div className="relative w-full overflow-hidden py-4 -mx-6 sm:-mx-10 px-6 sm:px-10">
+            {/* Edge Vignette Fades */}
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-16 sm:w-32 z-20 bg-gradient-to-r from-[#050705] via-[#050705]/80 to-transparent" />
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-16 sm:w-32 z-20 bg-gradient-to-l from-[#050705] via-[#050705]/80 to-transparent" />
 
-                <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#050705]">
-                  <MatrixRain opacity={0.12} className="z-0" />
-                  <img
-                    src={leader.image}
-                    alt={leader.name}
-                    loading="lazy"
-                    decoding="async"
-                    onError={handleImageError}
-                    className="relative z-10 h-full w-full object-cover object-top grayscale contrast-125 transition-transform duration-500 group-hover:scale-105 group-hover:grayscale-0"
-                    draggable={false}
-                  />
-                  <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#080d08] via-[#080d08]/50 to-transparent" />
-                </div>
+            <div className="animate-marquee-rtl flex items-stretch gap-6 px-4">
+              {[...leadership, ...leadership, ...leadership, ...leadership].map((leader, index) => (
+                <div
+                  key={`${leader.id}-team-loop-${index}`}
+                  onClick={() => setSelectedLeader(leader)}
+                  className="group relative flex w-[260px] sm:w-[280px] md:w-[300px] shrink-0 flex-col overflow-hidden rounded-xl border border-[#123a17] bg-[#080d08] transition-all duration-300 hover:border-[#00ff41] hover:shadow-[0_0_30px_rgba(0,255,65,0.3)] hover:-translate-y-1 cursor-pointer select-none"
+                  data-cursor="lens"
+                >
+                  {/* Cyber Reticles */}
+                  <span className="absolute top-2 left-2 z-20 font-mono text-[9px] text-[#00ff41]/40 select-none group-hover:text-[#00ff41] transition-colors">+</span>
+                  <span className="absolute top-2 right-2 z-20 font-mono text-[9px] text-[#00ff41]/40 select-none group-hover:text-[#00ff41] transition-colors">+</span>
 
-                <div className="relative z-20 flex flex-col p-5 bg-[#080d08]">
-                  <span className="font-mono text-[11px] font-semibold uppercase tracking-widest text-[#00ff41]">
-                    {leader.role}
-                  </span>
-                  <h3 className="mt-1 font-display text-base font-bold text-[#c8f7d0] group-hover:text-[#00ff41] transition-colors">
-                    {leader.name}
-                  </h3>
+                  <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#050705]">
+                    <MatrixRain opacity={0.12} className="z-0" />
+                    <img
+                      src={leader.image}
+                      alt={leader.name}
+                      loading="lazy"
+                      decoding="async"
+                      onError={handleImageError}
+                      className="relative z-10 h-full w-full object-cover object-top grayscale contrast-125 transition-transform duration-500 group-hover:scale-105 group-hover:grayscale-0"
+                      draggable={false}
+                    />
+                    <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#080d08] via-[#080d08]/50 to-transparent" />
+                  </div>
 
-                  <div
-                    className="mt-4 flex items-center gap-3 pt-3 border-t border-[#123a17]"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {leader.github && (
-                      <a
-                        href={leader.github}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`${leader.name} on GitHub`}
-                        className="text-[#6fae78] transition-colors hover:text-[#00ff41]"
+                  <div className="relative z-20 flex flex-col p-5 bg-[#080d08] flex-1 justify-between">
+                    <div>
+                      <span className="font-mono text-[11px] font-semibold uppercase tracking-widest text-[#00ff41]">
+                        {leader.role}
+                      </span>
+                      <h3 className="mt-1 font-display text-base font-bold text-[#c8f7d0] group-hover:text-[#00ff41] transition-colors">
+                        {leader.name}
+                      </h3>
+                    </div>
+
+                    <div
+                      className="mt-4 flex items-center gap-3 pt-3 border-t border-[#123a17]"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {leader.github && (
+                        <a
+                          href={leader.github}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`${leader.name} on GitHub`}
+                          className="text-[#6fae78] transition-colors hover:text-[#00ff41]"
+                        >
+                          <Github size={15} />
+                        </a>
+                      )}
+                      {leader.linkedin && (
+                        <a
+                          href={leader.linkedin}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`${leader.name} on LinkedIn`}
+                          className="text-[#6fae78] transition-colors hover:text-[#00ff41]"
+                        >
+                          <Linkedin size={15} />
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedLeader(leader)}
+                        className="ml-auto font-mono text-[10px] text-[#2c7a3a] flex items-center gap-1 group-hover:text-[#00ff41] transition-colors"
                       >
-                        <Github size={15} />
-                      </a>
-                    )}
-                    {leader.linkedin && (
-                      <a
-                        href={leader.linkedin}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`${leader.name} on LinkedIn`}
-                        className="text-[#6fae78] transition-colors hover:text-[#00ff41]"
-                      >
-                        <Linkedin size={15} />
-                      </a>
-                    )}
-                    <span className="ml-auto font-mono text-[10px] text-[#2c7a3a] flex items-center gap-1 group-hover:text-[#00ff41] transition-colors">
-                      DOSSIER <ExternalLink size={10} />
-                    </span>
+                        DOSSIER <ExternalLink size={10} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </section>
 

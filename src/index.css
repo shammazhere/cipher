@@ -114,6 +114,28 @@ html.lenis, html.lenis body {
   animation: terminal-blink 1s step-end infinite;
 }
 
+/* Infinite Smooth Right-to-Left Loop Marquee */
+@keyframes marquee-rtl {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee-rtl {
+  display: flex;
+  width: max-content;
+  animation: marquee-rtl 45s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-rtl:hover,
+.animate-marquee-rtl:focus-within {
+  animation-play-state: paused;
+}
+
 /* Custom Scrollbar for Hacker Theme */
 ::-webkit-scrollbar {
   width: 8px;

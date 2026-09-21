@@ -36,15 +36,38 @@ export const LeadershipSection: React.FC = () => {
           Elected student representatives leading the association under faculty mentorship from the Department of Computer Science & Engineering.
         </p>
 
-        {/* Leadership Cards Grid */}
-        <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          {leadership.map((leader) => (
+        {/* Telemetry Status Bar */}
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-[#123a17] pb-3 text-xs">
+          <span className="font-mono text-[11px] uppercase tracking-widest text-[#00ff41] flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#00ff41] animate-pulse" />
+            // STREAM: 5 ELECTED COUNCIL DIRECTORS
+          </span>
+          <span className="font-mono text-[10px] text-[#6fae78] tracking-wider hidden sm:inline">
+            [ HOVER CARD TO PAUSE &amp; VIEW DOSSIER ]
+          </span>
+        </div>
+      </div>
+
+      {/* Continuous Infinite Right-to-Left Loop Marquee */}
+      <div className="relative mt-8 w-full overflow-hidden py-4">
+        {/* Left & Right Edge Vignette Fades */}
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-16 sm:w-32 z-20 bg-gradient-to-r from-[#050705] via-[#050705]/80 to-transparent" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-16 sm:w-32 z-20 bg-gradient-to-l from-[#050705] via-[#050705]/80 to-transparent" />
+
+        {/* Moving Loop Track */}
+        <div className="animate-marquee-rtl flex items-stretch gap-6 px-4">
+          {/* Repeat list 4 times (2 sets of 2) to guarantee seamless infinite wrapping on all viewports */}
+          {[...leadership, ...leadership, ...leadership, ...leadership].map((leader, index) => (
             <div
-              key={leader.id}
+              key={`${leader.id}-loop-${index}`}
               onClick={() => setSelectedLeader(leader)}
-              className="group relative flex flex-col overflow-hidden rounded-xl border border-[#123a17] bg-[#080d08] transition-all duration-300 hover:border-[#00ff41] hover:shadow-[0_0_30px_rgba(0,255,65,0.25)] hover:-translate-y-1 cursor-pointer"
+              className="group relative flex w-[260px] sm:w-[280px] md:w-[300px] shrink-0 flex-col overflow-hidden rounded-xl border border-[#123a17] bg-[#080d08] transition-all duration-300 hover:border-[#00ff41] hover:shadow-[0_0_30px_rgba(0,255,65,0.3)] hover:-translate-y-1 cursor-pointer select-none"
               data-cursor="lens"
             >
+              {/* Corner Cyber Accents */}
+              <span className="absolute top-2 left-2 z-20 font-mono text-[9px] text-[#00ff41]/40 select-none group-hover:text-[#00ff41] transition-colors">+</span>
+              <span className="absolute top-2 right-2 z-20 font-mono text-[9px] text-[#00ff41]/40 select-none group-hover:text-[#00ff41] transition-colors">+</span>
+
               {/* Image Container with Matrix Rain Overlay */}
               <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#050705]">
                 {/* Matrix Rain in card background */}
@@ -66,16 +89,18 @@ export const LeadershipSection: React.FC = () => {
               </div>
 
               {/* Card Bottom Meta */}
-              <div className="relative z-20 flex flex-col p-5 bg-[#080d08]">
-                <span className="font-mono text-[11px] font-semibold uppercase tracking-widest text-[#00ff41]">
-                  {leader.role}
-                </span>
+              <div className="relative z-20 flex flex-col p-5 bg-[#080d08] flex-1 justify-between">
+                <div>
+                  <span className="font-mono text-[11px] font-semibold uppercase tracking-widest text-[#00ff41]">
+                    {leader.role}
+                  </span>
 
-                <h3 className="mt-1 font-display text-base font-bold text-[#c8f7d0] group-hover:text-[#00ff41] transition-colors">
-                  {leader.name}
-                </h3>
+                  <h3 className="mt-1 font-display text-base font-bold text-[#c8f7d0] group-hover:text-[#00ff41] transition-colors">
+                    {leader.name}
+                  </h3>
+                </div>
 
-                {/* Social icons */}
+                {/* Social icons & Dossier trigger */}
                 <div
                   className="mt-4 flex items-center gap-3 pt-3 border-t border-[#123a17]"
                   onClick={(e) => e.stopPropagation()}
@@ -102,9 +127,13 @@ export const LeadershipSection: React.FC = () => {
                       <Linkedin size={15} />
                     </a>
                   )}
-                  <span className="ml-auto font-mono text-[10px] text-[#2c7a3a] flex items-center gap-1 group-hover:text-[#00ff41] transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedLeader(leader)}
+                    className="ml-auto font-mono text-[10px] text-[#2c7a3a] flex items-center gap-1 group-hover:text-[#00ff41] transition-colors"
+                  >
                     BIO <ExternalLink size={10} />
-                  </span>
+                  </button>
                 </div>
               </div>
             </div>
