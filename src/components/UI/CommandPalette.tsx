@@ -111,18 +111,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         shortcut: 'G J',
       },
       {
-        id: 'nav-components',
-        title: 'Sector // 06: Design System Library',
-        category: 'Developer',
-        description: 'Interactive component tokens, buttons, cards, and modal previews',
-        action: () => {
-          soundEffects.playClick();
-          onNavigate('components');
-          onClose();
-        },
-        shortcut: 'G C',
-      },
-      {
         id: 'action-apply',
         title: 'Action: Open Membership Application',
         category: 'Actions',

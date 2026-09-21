@@ -26,7 +26,6 @@ export const Footer: React.FC<FooterProps> = ({ currentPage, onNavigate }) => {
     { id: 'events', name: 'Events' },
     { id: 'team', name: 'Team' },
     { id: 'join', name: 'Join' },
-    { id: 'components', name: 'Component Library' },
     { id: 'admin', name: 'Admin CMS' },
   ];
 

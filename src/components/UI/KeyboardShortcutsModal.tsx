@@ -54,7 +54,6 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
         { key: '3  or  G E', desc: 'Jump to Sector 03: Events & Gala' },
         { key: '4  or  G T', desc: 'Jump to Sector 04: Executive Team' },
         { key: '5  or  G J', desc: 'Jump to Sector 05: Apply / Join' },
-        { key: '6  or  G C', desc: 'Jump to Sector 06: Component Library' },
       ],
     },
   ];

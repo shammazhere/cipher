@@ -47,12 +47,6 @@ const PAGE_SEO_METADATA: Record<string, SEOConfig> = {
     keywords: 'Join CIPHER, Student Membership, Apply, Registration, Contact SJEC CSE',
     canonicalPath: '#join',
   },
-  components: {
-    title: 'Design System & Component Library | CIPHER Portal',
-    description: 'Explore the reusable UI tokens, cyber buttons, containers, interactive states, and typography scale powering the CIPHER design system.',
-    keywords: 'Design System, Component Library, UI Tokens, Cyberpunk UI, React Tailwind',
-    canonicalPath: '#components',
-  },
   admin: {
     title: 'Admin Content & Position CMS | CIPHER Portal',
     description: 'Authorized administration dashboard for non-developer club leads to update events, team members, photo galleries, and reorder item positions.',

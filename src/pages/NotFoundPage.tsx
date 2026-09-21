@@ -91,7 +91,6 @@ export const NotFoundPage: React.FC<NotFoundPageProps> = ({ onNavigate }) => {
     { id: 'events', label: 'Events & Galas', code: '03' },
     { id: 'team', label: 'Executive Council', code: '04' },
     { id: 'join', label: 'Membership Portal', code: '05' },
-    { id: 'components', label: 'Design System Library', code: '06' },
   ];
 
   return (

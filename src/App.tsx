@@ -31,9 +31,6 @@ import { JoinPage } from './pages/JoinPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // Lazy Loaded Heavy Modules (Code-split for blazing-fast initial bundle)
-const ComponentLibraryPage = lazy(() =>
-  import('./pages/ComponentLibraryPage').then((m) => ({ default: m.ComponentLibraryPage }))
-);
 const AdminDashboard = lazy(() =>
   import('./components/Admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard }))
 );
@@ -56,7 +53,7 @@ const CyberModuleLoader: React.FC<{ label: string }> = ({ label }) => (
   </div>
 );
 
-const VALID_ROUTES = ['home', 'about', 'events', 'team', 'join', 'components', 'admin'];
+const VALID_ROUTES = ['home', 'about', 'events', 'team', 'join', 'admin'];
 
 /**
  * Resolves current route from either hash or pathname with 404 fallback
@@ -138,14 +135,13 @@ export const AppContent: React.FC = () => {
       } else if (e.key.toLowerCase() === 'm' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         toggleSound();
-      } else if (['1', '2', '3', '4', '5', '6'].includes(e.key) && !e.ctrlKey && !e.metaKey) {
+      } else if (['1', '2', '3', '4', '5'].includes(e.key) && !e.ctrlKey && !e.metaKey) {
         const routeMap: Record<string, string> = {
           '1': 'home',
           '2': 'about',
           '3': 'events',
           '4': 'team',
           '5': 'join',
-          '6': 'components',
         };
         const dest = routeMap[e.key];
         if (dest) {
@@ -180,31 +176,38 @@ export const AppContent: React.FC = () => {
 
   return (
     <div className="relative min-h-screen bg-[#050705] text-[#c8f7d0] selection:bg-[#00ff41]/20 selection:text-[#00ff41]">
-      {/* High-Performance Top Scroll Reading Progress HUD */}
+      <SystemStatusHUD />
       <ScrollProgressBar />
 
-      {/* Accessibility: Skip to main content link */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded focus:border focus:border-[#00ff41] focus:bg-[#050705] focus:px-4 focus:py-2 focus:text-xs focus:font-mono focus:text-[#00ff41]"
-      >
-        Skip to main content
-      </a>
+      {/* Cyber Toast Notifications Container */}
+      <CyberToastContainer />
 
-      {/* High-Performance Custom Tactical Reticle Cursor */}
-      <CustomCursor />
-
-      {/* Cyberpunk Preloader Boot Sequence */}
+      {/* Retro Matrix Hardware Preloader */}
       {!bootSeen && (
-        <MatrixBoot onComplete={() => setBootSeen(true)} />
+        <MatrixBoot
+          onComplete={() => {
+            setBootSeen(true);
+            try {
+              sessionStorage.setItem('cipher_boot_seen', 'true');
+            } catch {
+              // ignore private mode storage errors
+            }
+          }}
+        />
       )}
 
-      {/* ADMIN CMS VIEW WITH AUTHENTICATION GATE (LAZY LOADED) */}
+      {/* Interactive Custom Laser Cursor */}
+      <CustomCursor />
+
+      {/* Admin Panel vs Public Site Routing */}
       {currentPage === 'admin' ? (
-        <Suspense fallback={<CyberModuleLoader label="ADMIN_CMS_SUBSYSTEM" />}>
+        /* ISOLATED ADMIN CMS VIEW */
+        <Suspense fallback={<CyberModuleLoader label="ADMIN_CMS_KERNEL" />}>
           {!isAuthenticated ? (
             <AdminAuthGate
-              onAuthenticated={refreshAuth}
+              onAuthenticated={() => {
+                refreshAuth();
+              }}
               onCancel={() => navigateTo('home')}
             />
           ) : (
@@ -217,7 +220,7 @@ export const AppContent: React.FC = () => {
       ) : (
         /* PUBLIC SITE VIEW */
         <>
-          {/* Global Topographical 60 FPS Contour Wireframe Background */}
+          {/* Topographical Grid Canvas */}
           <TopographyCanvas strokeColor="rgba(0, 255, 65, 0.12)" />
 
           {/* Navigation Bar */}
@@ -225,16 +228,11 @@ export const AppContent: React.FC = () => {
             currentPage={currentPage}
             onNavigate={navigateTo}
             onOpenJoin={() => setIsJoinModalOpen(true)}
-            onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-            onOpenShare={() => setIsShareOpen(true)}
-            onOpenShortcuts={() => setIsShortcutsOpen(true)}
-            isSoundMuted={soundMuted}
-            onToggleSound={toggleSound}
           />
 
-          {/* Main View Router: 5 Mandatory Pages + Component Library + 404 */}
+          {/* Main View Router: 5 Mandatory Pages + 404 */}
           <main id="main-content" className="relative z-10">
-            {['about', 'events', 'team', 'join', 'components'].includes(currentPage) && (
+            {['about', 'events', 'team', 'join'].includes(currentPage) && (
               <BreadcrumbHeader
                 pageId={currentPage}
                 sectorCode={
@@ -244,9 +242,7 @@ export const AppContent: React.FC = () => {
                     ? '03'
                     : currentPage === 'team'
                     ? '04'
-                    : currentPage === 'join'
-                    ? '05'
-                    : '06'
+                    : '05'
                 }
                 pageTitle={
                   currentPage === 'about'
@@ -255,9 +251,7 @@ export const AppContent: React.FC = () => {
                     ? 'EVENTS & WORKSHOPS'
                     : currentPage === 'team'
                     ? 'EXECUTIVE COUNCIL'
-                    : currentPage === 'join'
-                    ? 'MEMBERSHIP & APPLICATION'
-                    : 'DESIGN SYSTEM LIBRARY'
+                    : 'MEMBERSHIP & APPLICATION'
                 }
                 onNavigate={navigateTo}
               />
@@ -269,17 +263,12 @@ export const AppContent: React.FC = () => {
             {currentPage === 'events' && <EventsPage />}
             {currentPage === 'team' && <TeamPage />}
             {currentPage === 'join' && <JoinPage />}
-            {currentPage === 'components' && (
-              <Suspense fallback={<CyberModuleLoader label="DESIGN_SYSTEM_LIBRARY" />}>
-                <ComponentLibraryPage />
-              </Suspense>
-            )}
             {currentPage === '404' && (
               <NotFoundPage onNavigate={navigateTo} />
             )}
           </main>
 
-          {/* Site Footer with interactive clickable links */}
+          {/* Site Footer */}
           <Footer currentPage={currentPage} onNavigate={navigateTo} />
 
           {/* Global Application Form Modal */}
@@ -303,9 +292,6 @@ export const AppContent: React.FC = () => {
             soundMuted={soundMuted}
           />
 
-          {/* Live Network & Latency Telemetry HUD */}
-          <SystemStatusHUD />
-
           {/* Tactical Keyboard Shortcuts Reference Modal */}
           <KeyboardShortcutsModal
             isOpen={isShortcutsOpen}
@@ -319,9 +305,6 @@ export const AppContent: React.FC = () => {
             isOpen={isShareOpen}
             onClose={() => setIsShareOpen(false)}
           />
-
-          {/* Global Cyber Toast Notification Stack */}
-          <CyberToastContainer />
         </>
       )}
     </div>
