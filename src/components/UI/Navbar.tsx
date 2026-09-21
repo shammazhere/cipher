@@ -1,37 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Settings, Layers, Search, Volume2, VolumeX, Share2, Keyboard } from 'lucide-react';
+import { Menu, X, Settings } from 'lucide-react';
 import { handleImageError } from '../../utils/imageFallback';
-import { soundEffects } from '../../utils/soundEffects';
 
 /**
  * Navbar Component
  * 
  * Non-technical explanation:
- * Top navigation bar connecting all 5 mandatory pages (Home, About, Events, Team, Join),
- * plus shortcuts to the Component Library, Command Palette, Audio FX toggle, Share modal,
- * and the Admin CMS dashboard.
+ * Top navigation bar connecting all primary pages (Home, About, Events, Team, Join),
+ * the Admin CMS dashboard, and a direct 'JOIN CIPHER' call to action.
  */
 
 interface NavbarProps {
   currentPage: string;
   onNavigate: (page: string) => void;
   onOpenJoin: () => void;
-  onOpenCommandPalette?: () => void;
-  onOpenShare?: () => void;
-  onOpenShortcuts?: () => void;
-  isSoundMuted?: boolean;
-  onToggleSound?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   currentPage,
   onNavigate,
   onOpenJoin,
-  onOpenCommandPalette,
-  onOpenShare,
-  onOpenShortcuts,
-  isSoundMuted,
-  onToggleSound,
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -105,27 +93,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             );
           })}
 
-          {/* Component Library link */}
-          <button
-            type="button"
-            onClick={() => onNavigate('components')}
-            className={`flex items-center gap-1.5 font-mono text-[11px] font-medium tracking-wider px-2 py-1 rounded transition-colors ${
-              currentPage === 'components'
-                ? 'text-[#00ff41] bg-[#00ff41]/10 border border-[#00ff41]/40'
-                : 'text-[#6fae78] hover:text-[#00ff41]'
-            }`}
-            data-cursor="lens"
-            title="Component Library Showcase"
-          >
-            <Layers size={13} />
-            <span>LIBRARY</span>
-          </button>
-
           {/* Admin CMS link */}
           <button
             type="button"
             onClick={() => onNavigate('admin')}
-            className={`flex items-center gap-1.5 font-mono text-[11px] font-medium tracking-wider px-2 py-1 rounded transition-colors ${
+            className={`flex items-center gap-1.5 font-mono text-[11px] font-medium tracking-wider px-2.5 py-1 rounded transition-colors ${
               currentPage === 'admin'
                 ? 'text-[#00ff41] bg-[#00ff41]/10 border border-[#00ff41]/40'
                 : 'text-[#6fae78] hover:text-[#00ff41]'
@@ -138,73 +110,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </nav>
 
-        {/* Right: Audio + Share + Shortcuts + Search + Join CTA */}
-        <div className="hidden md:flex items-center gap-2">
-          {/* Audio FX Synth Toggle */}
-          {onToggleSound && (
-            <button
-              type="button"
-              onClick={onToggleSound}
-              aria-label={isSoundMuted ? 'Enable Audio FX' : 'Mute Audio FX'}
-              className={`flex items-center justify-center h-8 w-8 rounded border transition-all duration-200 ${
-                !isSoundMuted
-                  ? 'border-[#00ff41]/60 bg-[#00ff41]/10 text-[#00ff41] shadow-[0_0_10px_rgba(0,255,65,0.3)]'
-                  : 'border-[#123a17] bg-[#080d08] text-[#6fae78] hover:border-[#00ff41]/40 hover:text-[#00ff41]'
-              }`}
-              data-cursor="lens"
-              title={isSoundMuted ? 'Sound FX: Muted (Press M)' : 'Sound FX: Active (Press M)'}
-            >
-              {!isSoundMuted ? <Volume2 size={14} /> : <VolumeX size={14} />}
-            </button>
-          )}
-
-          {/* Share Portal Button */}
-          {onOpenShare && (
-            <button
-              type="button"
-              onClick={onOpenShare}
-              aria-label="Share CIPHER Portal"
-              className="flex items-center justify-center h-8 w-8 rounded border border-[#123a17] bg-[#080d08] text-[#6fae78] transition-all duration-200 hover:border-[#00ff41]/50 hover:text-[#00ff41]"
-              data-cursor="lens"
-              title="Share Portal"
-            >
-              <Share2 size={14} />
-            </button>
-          )}
-
-          {/* Keyboard Shortcuts Button */}
-          {onOpenShortcuts && (
-            <button
-              type="button"
-              onClick={onOpenShortcuts}
-              aria-label="Keyboard Shortcuts (?)"
-              className="flex items-center justify-center h-8 w-8 rounded border border-[#123a17] bg-[#080d08] text-[#6fae78] transition-all duration-200 hover:border-[#00ff41]/50 hover:text-[#00ff41]"
-              data-cursor="lens"
-              title="Keyboard Shortcuts (?)"
-            >
-              <Keyboard size={14} />
-            </button>
-          )}
-
-          {/* Command Palette Trigger */}
-          {onOpenCommandPalette && (
-            <button
-              type="button"
-              onClick={onOpenCommandPalette}
-              aria-label="Open Command Palette (Ctrl+K)"
-              className="flex items-center gap-1.5 rounded border border-[#123a17] bg-[#080d08] px-2.5 py-1.5 font-mono text-xs text-[#6fae78] transition-all duration-200 hover:border-[#00ff41]/50 hover:text-[#00ff41]"
-              data-cursor="lens"
-              title="Command Palette (Ctrl+K)"
-            >
-              <Search size={13} className="text-[#00ff41]" />
-              <span className="text-[10px] text-[#2c7a3a] border border-[#123a17] px-1 rounded">⌘K</span>
-            </button>
-          )}
-
+        {/* Right: Clean JOIN CIPHER CTA button */}
+        <div className="hidden md:flex items-center">
           <button
             type="button"
             onClick={onOpenJoin}
-            className="ml-1 rounded border border-[#00ff41] px-4 py-2 font-mono text-xs font-semibold uppercase tracking-widest text-[#00ff41] transition-all duration-300 hover:bg-[#00ff41] hover:text-[#030503] hover:shadow-[0_0_20px_rgba(0,255,65,0.4)]"
+            className="rounded border border-[#00ff41] px-5 py-2 font-mono text-xs font-semibold uppercase tracking-widest text-[#00ff41] transition-all duration-300 hover:bg-[#00ff41] hover:text-[#030503] hover:shadow-[0_0_20px_rgba(0,255,65,0.4)]"
             data-cursor="lens"
           >
             JOIN CIPHER
@@ -240,77 +151,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               {link.name}
             </button>
           ))}
-          {onOpenCommandPalette && (
-            <button
-              type="button"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onOpenCommandPalette();
-              }}
-              className="flex items-center gap-2 font-mono text-xs text-[#6fae78] w-full text-left pt-2 border-t border-[#123a17]"
-            >
-              <Search size={14} className="text-[#00ff41]" />
-              <span>COMMAND PALETTE (CTRL+K)</span>
-            </button>
-          )}
-          {onToggleSound && (
-            <button
-              type="button"
-              onClick={onToggleSound}
-              className="flex items-center gap-2 font-mono text-xs text-[#6fae78] w-full text-left"
-            >
-              {!isSoundMuted ? (
-                <Volume2 size={14} className="text-[#00ff41]" />
-              ) : (
-                <VolumeX size={14} />
-              )}
-              <span>AUDIO FX: {!isSoundMuted ? 'ENABLED' : 'MUTED'}</span>
-            </button>
-          )}
-          {onOpenShare && (
-            <button
-              type="button"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onOpenShare();
-              }}
-              className="flex items-center gap-2 font-mono text-xs text-[#6fae78] w-full text-left"
-            >
-              <Share2 size={14} className="text-[#00ff41]" />
-              <span>SHARE PORTAL</span>
-            </button>
-          )}
-          {onOpenShortcuts && (
-            <button
-              type="button"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onOpenShortcuts();
-              }}
-              className="flex items-center gap-2 font-mono text-xs text-[#6fae78] w-full text-left"
-            >
-              <Keyboard size={14} className="text-[#00ff41]" />
-              <span>KEYBOARD SHORTCUTS (?)</span>
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              setMobileMenuOpen(false);
-              onNavigate('components');
-            }}
-            className="flex items-center gap-2 font-mono text-xs text-[#6fae78] w-full text-left"
-          >
-            <Layers size={14} />
-            <span>COMPONENT LIBRARY</span>
-          </button>
           <button
             type="button"
             onClick={() => {
               setMobileMenuOpen(false);
               onNavigate('admin');
             }}
-            className="flex items-center gap-2 font-mono text-xs text-[#00ff41] w-full text-left"
+            className="flex items-center gap-2 font-mono text-xs text-[#00ff41] w-full text-left pt-2 border-t border-[#123a17]"
           >
             <Settings size={14} />
             <span>ADMIN CMS DASHBOARD</span>
