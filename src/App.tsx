@@ -1,5 +1,6 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { DataProvider } from './context/DataContext';
+import { ToastProvider } from './context/ToastContext';
 import { MatrixBoot } from './components/Preloader/MatrixBoot';
 import { TopographyCanvas } from './components/Canvas/TopographyCanvas';
 import { CustomCursor } from './components/UI/CustomCursor';
@@ -9,6 +10,13 @@ import { JoinModal } from './components/Modals/JoinModal';
 import { ErrorBoundary } from './components/UI/ErrorBoundary';
 import { BackToTop } from './components/UI/BackToTop';
 import { CommandPalette } from './components/UI/CommandPalette';
+import { ScrollProgressBar } from './components/UI/ScrollProgressBar';
+import { CyberToastContainer } from './components/UI/CyberToastContainer';
+import { SystemStatusHUD } from './components/UI/SystemStatusHUD';
+import { KeyboardShortcutsModal } from './components/UI/KeyboardShortcutsModal';
+import { ShareModal } from './components/UI/ShareModal';
+import { BreadcrumbHeader } from './components/UI/BreadcrumbHeader';
+import { soundEffects } from './utils/soundEffects';
 
 import { usePageSEO } from './hooks/usePageSEO';
 import { useAdminAuth } from './hooks/useAdminAuth';
@@ -92,7 +100,15 @@ export const AppContent: React.FC = () => {
 
   const [isJoinModalOpen, setIsJoinModalOpen] = useState<boolean>(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
+  const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
+  const [soundMuted, setSoundMuted] = useState<boolean>(() => soundEffects.isMuted());
   const { isAuthenticated, logout: handleAdminLogout } = useAdminAuth();
+
+  const toggleSound = () => {
+    const newMuted = soundEffects.toggleMute();
+    setSoundMuted(newMuted);
+  };
 
   // Dynamically synchronize document title, OpenGraph tags, and meta descriptions per route
   usePageSEO(currentPage);
@@ -100,20 +116,47 @@ export const AppContent: React.FC = () => {
   // Buttery-smooth inertial scroll powered by Lenis
   useSmoothScroll({
     disabled: currentPage === 'admin',
-    isModalOpen: isJoinModalOpen || isCommandPaletteOpen || !bootSeen,
+    isModalOpen: isJoinModalOpen || isCommandPaletteOpen || isShortcutsOpen || isShareOpen || !bootSeen,
   });
 
-  // Global Ctrl+K / Cmd+K listener for Command Palette
+  // Global Keyboard Shortcuts (Ctrl+K, ?, M, 1-6)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
+        return;
+      }
+
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
+        soundEffects.playClick();
         setIsCommandPaletteOpen((prev) => !prev);
+      } else if (e.key === '?') {
+        e.preventDefault();
+        soundEffects.playClick();
+        setIsShortcutsOpen((prev) => !prev);
+      } else if (e.key.toLowerCase() === 'm' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        toggleSound();
+      } else if (['1', '2', '3', '4', '5', '6'].includes(e.key) && !e.ctrlKey && !e.metaKey) {
+        const routeMap: Record<string, string> = {
+          '1': 'home',
+          '2': 'about',
+          '3': 'events',
+          '4': 'team',
+          '5': 'join',
+          '6': 'components',
+        };
+        const dest = routeMap[e.key];
+        if (dest) {
+          e.preventDefault();
+          navigateTo(dest);
+        }
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, []);
+  }, [soundMuted]);
 
   // Sync hash in URL with page state for browser back/forward and shareable links
   useEffect(() => {
@@ -129,6 +172,7 @@ export const AppContent: React.FC = () => {
   }, []);
 
   const navigateTo = (page: string) => {
+    soundEffects.playTransition();
     setCurrentPage(page);
     window.location.hash = page === 'home' ? '' : `#${page}`;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -136,6 +180,9 @@ export const AppContent: React.FC = () => {
 
   return (
     <div className="relative min-h-screen bg-[#050705] text-[#c8f7d0] selection:bg-[#00ff41]/20 selection:text-[#00ff41]">
+      {/* High-Performance Top Scroll Reading Progress HUD */}
+      <ScrollProgressBar />
+
       {/* Accessibility: Skip to main content link */}
       <a
         href="#main-content"
@@ -179,10 +226,42 @@ export const AppContent: React.FC = () => {
             onNavigate={navigateTo}
             onOpenJoin={() => setIsJoinModalOpen(true)}
             onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+            onOpenShare={() => setIsShareOpen(true)}
+            onOpenShortcuts={() => setIsShortcutsOpen(true)}
+            isSoundMuted={soundMuted}
+            onToggleSound={toggleSound}
           />
 
           {/* Main View Router: 5 Mandatory Pages + Component Library + 404 */}
           <main id="main-content" className="relative z-10">
+            {['about', 'events', 'team', 'join', 'components'].includes(currentPage) && (
+              <BreadcrumbHeader
+                pageId={currentPage}
+                sectorCode={
+                  currentPage === 'about'
+                    ? '02'
+                    : currentPage === 'events'
+                    ? '03'
+                    : currentPage === 'team'
+                    ? '04'
+                    : currentPage === 'join'
+                    ? '05'
+                    : '06'
+                }
+                pageTitle={
+                  currentPage === 'about'
+                    ? 'ORIGINS & PILLARS'
+                    : currentPage === 'events'
+                    ? 'EVENTS & WORKSHOPS'
+                    : currentPage === 'team'
+                    ? 'EXECUTIVE COUNCIL'
+                    : currentPage === 'join'
+                    ? 'MEMBERSHIP & APPLICATION'
+                    : 'DESIGN SYSTEM LIBRARY'
+                }
+                onNavigate={navigateTo}
+              />
+            )}
             {currentPage === 'home' && (
               <HomePage onOpenJoin={() => setIsJoinModalOpen(true)} />
             )}
@@ -218,7 +297,31 @@ export const AppContent: React.FC = () => {
             onClose={() => setIsCommandPaletteOpen(false)}
             onNavigate={navigateTo}
             onOpenJoin={() => setIsJoinModalOpen(true)}
+            onOpenShare={() => setIsShareOpen(true)}
+            onOpenShortcuts={() => setIsShortcutsOpen(true)}
+            onToggleSound={toggleSound}
+            soundMuted={soundMuted}
           />
+
+          {/* Live Network & Latency Telemetry HUD */}
+          <SystemStatusHUD />
+
+          {/* Tactical Keyboard Shortcuts Reference Modal */}
+          <KeyboardShortcutsModal
+            isOpen={isShortcutsOpen}
+            onClose={() => setIsShortcutsOpen(false)}
+            onToggleSound={toggleSound}
+            soundMuted={soundMuted}
+          />
+
+          {/* Sector Share & Web Share Modal */}
+          <ShareModal
+            isOpen={isShareOpen}
+            onClose={() => setIsShareOpen(false)}
+          />
+
+          {/* Global Cyber Toast Notification Stack */}
+          <CyberToastContainer />
         </>
       )}
     </div>
@@ -229,10 +332,13 @@ export default function App() {
   return (
     <ErrorBoundary>
       <DataProvider>
-        <AppContent />
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
       </DataProvider>
     </ErrorBoundary>
   );
 }
+
 
 

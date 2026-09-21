@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, CheckCircle2, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useSecureForm } from '../../hooks/useSecureForm';
+import { useToast } from '../../context/ToastContext';
+import { soundEffects } from '../../utils/soundEffects';
 
 /**
  * Join Club Application Modal Component
@@ -20,6 +22,7 @@ interface JoinModalProps {
 
 export const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose }) => {
   const { addApplication } = useData();
+  const { showToast } = useToast();
 
   const {
     formData,
@@ -32,6 +35,12 @@ export const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose }) => {
   } = useSecureForm({
     onSuccess: (cleanData) => {
       addApplication(cleanData);
+      soundEffects.playSuccess();
+      showToast({
+        title: 'APPLICATION TRANSMITTED',
+        message: 'Your candidate profile has been recorded in the CIPHER registry.',
+        type: 'success',
+      });
     },
   });
 

@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useSecureForm } from '../hooks/useSecureForm';
+import { useToast } from '../context/ToastContext';
+import { soundEffects } from '../utils/soundEffects';
 
 /**
  * JoinPage Component (Page 5 of 5)
@@ -30,6 +32,7 @@ import { useSecureForm } from '../hooks/useSecureForm';
 
 export const JoinPage: React.FC = () => {
   const { siteConfig, addApplication } = useData();
+  const { showToast } = useToast();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const {
@@ -43,6 +46,12 @@ export const JoinPage: React.FC = () => {
   } = useSecureForm({
     onSuccess: (cleanData) => {
       addApplication(cleanData);
+      soundEffects.playSuccess();
+      showToast({
+        title: 'APPLICATION TRANSMITTED',
+        message: 'Your candidate profile has been recorded in the CIPHER registry.',
+        type: 'success',
+      });
     },
   });
 

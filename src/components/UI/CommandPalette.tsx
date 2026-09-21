@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, Terminal, ArrowRight, CornerDownLeft, X, Copy, Check, Shield } from 'lucide-react';
+import { Search, Terminal, ArrowRight, CornerDownLeft, X, Copy, Check, Shield, Volume2, Share2, Keyboard } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
+import { soundEffects } from '../../utils/soundEffects';
 
 interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigate: (page: string) => void;
   onOpenJoin: () => void;
+  onOpenShare?: () => void;
+  onOpenShortcuts?: () => void;
+  onToggleSound?: () => void;
+  soundMuted?: boolean;
 }
 
 interface CommandItem {
@@ -23,18 +29,23 @@ interface CommandItem {
  * Non-technical explanation:
  * A keyboard-driven global quick command interface. Users can press Ctrl+K / Cmd+K
  * anywhere on the site to quickly search and jump to any sector, copy contact info,
- * or open registration modal.
+ * toggle audio synthesis, or open registration modal.
  */
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
   isOpen,
   onClose,
   onNavigate,
   onOpenJoin,
+  onOpenShare,
+  onOpenShortcuts,
+  onToggleSound,
+  soundMuted,
 }) => {
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { showToast } = useToast();
 
   // Command registry
   const commands: CommandItem[] = useMemo(
@@ -45,6 +56,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         category: 'Navigation',
         description: 'Landing hero, mission statement, and flagship highlights',
         action: () => {
+          soundEffects.playClick();
           onNavigate('home');
           onClose();
         },
@@ -56,6 +68,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         category: 'Navigation',
         description: 'Origins, CSE department mentorship, and core mission pillars',
         action: () => {
+          soundEffects.playClick();
           onNavigate('about');
           onClose();
         },
@@ -67,6 +80,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         category: 'Navigation',
         description: 'Lumiere gala, PromptOps AI competition, and symposium archive',
         action: () => {
+          soundEffects.playClick();
           onNavigate('events');
           onClose();
         },
@@ -78,6 +92,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         category: 'Navigation',
         description: 'Student leaders, election charter, and faculty mentors',
         action: () => {
+          soundEffects.playClick();
           onNavigate('team');
           onClose();
         },
@@ -89,6 +104,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         category: 'Navigation',
         description: 'Student association membership application and contact desk',
         action: () => {
+          soundEffects.playClick();
           onNavigate('join');
           onClose();
         },
@@ -100,6 +116,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         category: 'Developer',
         description: 'Interactive component tokens, buttons, cards, and modal previews',
         action: () => {
+          soundEffects.playClick();
           onNavigate('components');
           onClose();
         },
@@ -111,10 +128,50 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         category: 'Actions',
         description: 'Launch the secured student membership form modal',
         action: () => {
+          soundEffects.playClick();
           onClose();
           onOpenJoin();
         },
         shortcut: 'A',
+      },
+      {
+        id: 'action-share',
+        title: 'Action: Broadcast & Share Portal',
+        category: 'Actions',
+        description: 'Open native Web Share or copy deep link to clipboard',
+        action: () => {
+          soundEffects.playClick();
+          onClose();
+          onOpenShare?.();
+        },
+        shortcut: 'S',
+      },
+      {
+        id: 'action-audio',
+        title: `Action: Toggle Audio Synthesis (${soundMuted ? 'Turn ON' : 'Turn OFF'})`,
+        category: 'Settings',
+        description: 'Enable or mute procedural Web Audio sound blips and clicks',
+        action: () => {
+          onToggleSound?.();
+          showToast({
+            title: soundMuted ? 'AUDIO SYNTHESIS ACTIVATED' : 'AUDIO SYNTHESIS MUTED',
+            type: 'info',
+          });
+          onClose();
+        },
+        shortcut: 'M',
+      },
+      {
+        id: 'action-shortcuts',
+        title: 'Action: View Keyboard Cheatsheet',
+        category: 'Help',
+        description: 'Display tactical shortcuts guide dialog',
+        action: () => {
+          soundEffects.playClick();
+          onClose();
+          onOpenShortcuts?.();
+        },
+        shortcut: '?',
       },
       {
         id: 'action-email',
@@ -124,6 +181,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         action: () => {
           navigator.clipboard.writeText('cipher@sjec.ac.in');
           setCopied(true);
+          soundEffects.playSuccess();
+          showToast({
+            title: 'EMAIL COPIED TO CLIPBOARD',
+            message: 'cipher@sjec.ac.in is ready to paste.',
+            type: 'success',
+          });
           setTimeout(() => setCopied(false), 2000);
         },
         shortcut: 'C',
@@ -134,6 +197,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         category: 'Administration',
         description: 'Access authorized club position management and content manager',
         action: () => {
+          soundEffects.playClick();
           onNavigate('admin');
           onClose();
         },
