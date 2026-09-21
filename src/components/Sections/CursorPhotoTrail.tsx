@@ -6,9 +6,9 @@ import { handleImageError } from '../../utils/imageFallback';
  * Cursor Photo Trail Component
  * 
  * Non-technical explanation:
- * This component displays the giant glowing "CIPHER" title on the right of the About section.
- * Whenever the visitor moves their mouse across this area, snapshots from past CIPHER events
- * fly out and float along their cursor trail before softly fading away!
+ * Interactive gallery canvas on the About section.
+ * As the user glides their mouse across "CIPHER", event snapshots emerge smoothly
+ * along the cursor's path with velocity-aware pacing and soft fading.
  */
 
 interface TrailPhotoItem {
@@ -29,7 +29,7 @@ export const CursorPhotoTrail: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [photos, setPhotos] = useState<TrailPhotoItem[]>([]);
   const lastSpawnTime = useRef(0);
-  const lastMousePos = useRef<{ x: number; y: number; time: number } | null>(null);
+  const lastSpawnPos = useRef<{ x: number; y: number } | null>(null);
 
   const images = siteConfig.trailImages || [
     '/images/trail/1.webp',
@@ -52,31 +52,29 @@ export const CursorPhotoTrail: React.FC = () => {
     const y = e.clientY - rect.top;
     const now = performance.now();
 
-    // Calculate cursor velocity
-    let velocity = 0;
-    if (lastMousePos.current) {
-      const dt = Math.max(now - lastMousePos.current.time, 1);
-      const dist = Math.hypot(x - lastMousePos.current.x, y - lastMousePos.current.y);
-      velocity = dist / dt;
+    // Ensure user has moved at least 32px from the last spawn to create a true path trail
+    if (lastSpawnPos.current) {
+      const dist = Math.hypot(x - lastSpawnPos.current.x, y - lastSpawnPos.current.y);
+      if (dist < 32) return;
     }
-    lastMousePos.current = { x, y, time: now };
 
-    // Throttle spawn rate according to velocity
-    const cooldown = Math.max(180 - velocity * 60, 60);
-    if (now - lastSpawnTime.current < cooldown) return;
+    // Cooldown throttle
+    if (now - lastSpawnTime.current < 90) return;
+
     lastSpawnTime.current = now;
+    lastSpawnPos.current = { x, y };
 
-    // Pick random dimensions and subtle random rotation
-    const baseW = Math.min(Math.max(rect.width * 0.38, 120), 280);
+    // Sizing and trajectory calculation
+    const baseW = Math.min(Math.max(rect.width * 0.32, 130), 240);
     const baseH = baseW * 0.68;
-    const rot = (Math.random() - 0.5) * 16;
-    const duration = 2200 + Math.random() * 800;
+    const rot = (Math.random() - 0.5) * 12;
+    const duration = 1900 + Math.random() * 500;
     const randomImg = images[Math.floor(Math.random() * images.length)];
 
     const newPhoto: TrailPhotoItem = {
       id: photoIdCounter++,
-      x: x - baseW / 2 + (Math.random() - 0.5) * 15,
-      y: y - baseH / 2 + (Math.random() - 0.5) * 15,
+      x: x - baseW / 2,
+      y: y - baseH / 2,
       width: baseW,
       height: baseH,
       rotation: rot,
@@ -84,14 +82,15 @@ export const CursorPhotoTrail: React.FC = () => {
       img: randomImg,
     };
 
-    setPhotos((prev) => [...(prev.length >= 6 ? prev.slice(prev.length - 5) : prev), newPhoto]);
+    // Keep max 5 active trail items for performance and clarity
+    setPhotos((prev) => [...(prev.length >= 5 ? prev.slice(prev.length - 4) : prev), newPhoto]);
   };
 
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      className="relative flex min-h-[380px] sm:min-h-[460px] w-full items-center justify-center overflow-hidden rounded-xl border border-[#123a17] bg-[#050705]/80 p-6 shadow-2xl"
+      className="relative flex min-h-[380px] sm:min-h-[460px] w-full items-center justify-center overflow-hidden rounded-xl border border-[#123a17] bg-[#050705]/80 p-6 shadow-2xl select-none"
       data-cursor="lens"
     >
       {/* Floating spawned photos */}
@@ -108,7 +107,7 @@ export const CursorPhotoTrail: React.FC = () => {
           CIPHER
         </span>
         <span className="mt-3 font-mono text-[11px] uppercase tracking-widest text-[#6fae78] opacity-70">
-          [ MOVE MOUSE TO EXPLORE ARCHIVE ]
+          [ GLIDE MOUSE TO REVEAL EVENT TRAIL ]
         </span>
       </div>
 

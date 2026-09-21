@@ -69,7 +69,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
   const [editingLeader, setEditingLeader] = useState<Leader | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const showNotification = (msg: string) => {
     setNotification(msg);
@@ -78,11 +77,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
 
   const activeNotification = notification || statusNotification;
 
-  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const type = activeTab === 'leadership' ? 'leadership' : activeTab === 'archive' ? 'archive' : 'events';
-    importJSON(file, type);
+  // Real client-side image file reader for instant photo uploads
+  const handlePhotoUpload = (file: File, callback: (dataUrl: string) => void) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (typeof e.target?.result === 'string') {
+        callback(e.target.result);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -95,58 +99,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
             <h1 className="font-display text-xl font-bold tracking-wider text-[#00ff41] text-glow">
               CIPHER // ADMIN CMS
             </h1>
-            <span className="hidden sm:inline-block rounded border border-[#123a17] bg-[#050705] px-2.5 py-0.5 text-[10px] text-[#6fae78]">
-              CONTENT &amp; POSITION CONTROLLER
-            </span>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Hidden file input for JSON import */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImportFile}
-              accept=".json"
-              className="hidden"
-            />
-
-            {/* Export JSON Button for Non-Developers */}
-            <button
-              type="button"
-              onClick={() => exportJSON(activeTab === 'events' ? 'events' : activeTab === 'leadership' ? 'leadership' : activeTab === 'archive' ? 'archive' : 'all')}
-              className="flex items-center gap-1.5 rounded border border-[#00ff41]/50 bg-[#00ff41]/10 px-3 py-1.5 text-xs text-[#00ff41] hover:bg-[#00ff41]/20 transition-colors"
-              title="Download formatted JSON file ready to drop into src/data/"
-            >
-              <Download size={13} />
-              <span>EXPORT JSON</span>
-            </button>
-
-            {/* Import JSON Button */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 rounded border border-[#123a17] bg-[#080d08] px-3 py-1.5 text-xs text-[#6fae78] hover:border-[#00ff41] hover:text-[#00ff41] transition-colors"
-              title="Import a JSON file from your computer"
-            >
-              <Upload size={13} />
-              <span>IMPORT JSON</span>
-            </button>
-
-            {/* Reset to defaults */}
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm('Reset all changes and restore original default data?')) {
-                  resetToDefaults();
-                  showNotification('Reset successfully to default data.');
-                }
-              }}
-              className="flex items-center gap-1.5 rounded border border-[#ff5f56]/40 bg-[#ff5f56]/10 px-3 py-1.5 text-xs text-[#ff5f56] hover:bg-[#ff5f56]/20 transition-colors"
-            >
-              <RotateCcw size={13} />
-              <span>RESET</span>
-            </button>
-
+          <div className="flex items-center gap-3 flex-wrap">
             {/* Return to public site */}
             <button
               type="button"
@@ -162,7 +117,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
               <button
                 type="button"
                 onClick={onLogout}
-                className="flex items-center gap-1.5 rounded border border-[#123a17] bg-[#080d08] px-3 py-1.5 text-xs text-[#6fae78] hover:border-[#ff5f56] hover:text-[#ff5f56] transition-colors"
+                className="flex items-center gap-1.5 rounded border border-[#123a17] bg-[#080d08] px-3.5 py-1.5 text-xs text-[#6fae78] hover:border-[#ff5f56] hover:text-[#ff5f56] transition-colors"
                 title="Log out of the Admin panel"
               >
                 <LogOut size={13} />
@@ -610,13 +565,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
 
         {/* ======================= TAB: SETTINGS ======================= */}
         {activeTab === 'settings' && (
-          <div className="max-w-2xl space-y-6">
+          <div className="max-w-3xl space-y-6">
             <div>
               <h2 className="font-display text-2xl font-bold text-[#c8f7d0]">
-                Site Branding &amp; Photo Trail
+                Site Branding &amp; Cursor Photo Trail
               </h2>
               <p className="text-xs text-[#6fae78] mt-1">
-                Customize association headlines, contact email, and trail image paths.
+                Customize association headlines, contact email, and upload photos for the interactive cursor trail.
               </p>
             </div>
 
@@ -663,6 +618,76 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                   }
                   className="w-full rounded border border-[#123a17] bg-[#050705] p-2.5 text-[#c8f7d0] focus:border-[#00ff41] focus:outline-none"
                 />
+              </div>
+            </div>
+
+            {/* CURSOR PHOTO TRAIL MANAGER */}
+            <div className="space-y-4 rounded-xl border border-[#123a17] bg-[#080d08] p-6 text-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#123a17] pb-3">
+                <div>
+                  <h3 className="font-display text-base font-bold text-[#00ff41]">
+                    Interactive Cursor Photo Trail
+                  </h3>
+                  <p className="text-[11px] text-[#6fae78] mt-0.5">
+                    Photos that float along the cursor when visitors explore the "CIPHER" headline on the About page.
+                  </p>
+                </div>
+
+                <label className="flex items-center gap-1.5 cursor-pointer rounded border border-[#00ff41] bg-[#00ff41]/10 px-3 py-1.5 text-xs font-bold text-[#00ff41] hover:bg-[#00ff41]/20 transition-colors shrink-0">
+                  <Upload size={13} />
+                  <span>UPLOAD TRAIL PHOTO</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handlePhotoUpload(file, (dataUrl) => {
+                          const updated = [...(siteConfig.trailImages || []), dataUrl];
+                          updateSiteConfig({ trailImages: updated });
+                          showNotification('New photo added to cursor trail.');
+                        });
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+
+              {/* Photo Thumbnails */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                {(siteConfig.trailImages || [
+                  '/images/trail/1.webp',
+                  '/images/trail/2.webp',
+                  '/images/trail/3.webp',
+                  '/images/trail/4.webp',
+                ]).map((imgSrc, idx) => (
+                  <div
+                    key={idx}
+                    className="group relative aspect-[4/3] rounded-lg overflow-hidden border border-[#123a17] bg-[#050705]"
+                  >
+                    <img
+                      src={imgSrc}
+                      alt={`Trail photo ${idx + 1}`}
+                      onError={handleImageError}
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = (siteConfig.trailImages || []).filter((_, i) => i !== idx);
+                          updateSiteConfig({ trailImages: updated });
+                          showNotification('Trail photo removed.');
+                        }}
+                        className="flex h-7 w-7 items-center justify-center rounded bg-[#ff5f56] text-[#050705] hover:bg-[#ff7b72] transition-colors"
+                        title="Delete photo from trail"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -742,20 +767,102 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                 />
               </div>
 
-              {/* Photo URLs */}
-              <div>
-                <label className="block text-[#c8f7d0] mb-1">Gallery Image URL / Path (Primary)</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={editingEvent.images[0] || ''}
-                    onChange={(e) => {
-                      const copy = [...editingEvent.images];
-                      copy[0] = e.target.value;
-                      setEditingEvent({ ...editingEvent, images: copy });
-                    }}
-                    className="w-full rounded border border-[#123a17] bg-[#050705] p-2 text-[#c8f7d0]"
-                  />
+              {/* Event Photo & Gallery Manager */}
+              <div className="space-y-3 pt-2 border-t border-[#123a17]">
+                <div className="flex items-center justify-between">
+                  <label className="text-[#c8f7d0] font-bold">Event Photos &amp; Gallery ({editingEvent.images.length})</label>
+                  <label className="flex items-center gap-1.5 cursor-pointer rounded border border-[#00ff41]/50 bg-[#00ff41]/10 px-3 py-1 text-xs font-bold text-[#00ff41] hover:bg-[#00ff41]/20 transition-colors">
+                    <Upload size={13} />
+                    <span>UPLOAD PHOTO</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handlePhotoUpload(file, (dataUrl) => {
+                            setEditingEvent({
+                              ...editingEvent,
+                              images: [...editingEvent.images, dataUrl],
+                              galleryCount: String(editingEvent.images.length + 1).padStart(2, '0'),
+                            });
+                            showNotification('Photo uploaded to event gallery.');
+                          });
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+
+                {/* Thumbnails of current images */}
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-1">
+                  {editingEvent.images.map((imgSrc, idx) => (
+                    <div
+                      key={idx}
+                      className="group relative aspect-[4/3] rounded border border-[#123a17] bg-[#050705] overflow-hidden"
+                    >
+                      <img
+                        src={imgSrc}
+                        alt={`Photo ${idx + 1}`}
+                        onError={handleImageError}
+                        className="h-full w-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = editingEvent.images.filter((_, i) => i !== idx);
+                            setEditingEvent({
+                              ...editingEvent,
+                              images: updated,
+                              galleryCount: String(updated.length).padStart(2, '0'),
+                            });
+                          }}
+                          className="flex h-6 w-6 items-center justify-center rounded bg-[#ff5f56] text-[#050705] hover:bg-[#ff7b72]"
+                          title="Remove photo"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                      {idx === 0 && (
+                        <span className="absolute bottom-1 left-1 rounded bg-[#00ff41] px-1 py-0.5 text-[9px] font-bold text-[#050705]">
+                          BANNER
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Direct Image Path input as alternative */}
+                <div className="pt-2">
+                  <label className="text-[10px] text-[#6fae78] block mb-1">Or add image path / external URL:</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="e.g. /lumiere/photo.webp or https://..."
+                      id="manualEventImgInput"
+                      className="w-full rounded border border-[#123a17] bg-[#050705] p-1.5 text-xs text-[#c8f7d0]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const el = document.getElementById('manualEventImgInput') as HTMLInputElement;
+                        if (el && el.value.trim()) {
+                          setEditingEvent({
+                            ...editingEvent,
+                            images: [...editingEvent.images, el.value.trim()],
+                            galleryCount: String(editingEvent.images.length + 1).padStart(2, '0'),
+                          });
+                          el.value = '';
+                          showNotification('Image path added.');
+                        }
+                      }}
+                      className="px-3 py-1 text-xs rounded border border-[#00ff41] text-[#00ff41] hover:bg-[#00ff41]/10 shrink-0"
+                    >
+                      ADD
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -823,13 +930,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
               </div>
 
               <div>
-                <label className="block text-[#c8f7d0] mb-1">Photo URL / Path</label>
-                <input
-                  type="text"
-                  value={editingLeader.image}
-                  onChange={(e) => setEditingLeader({ ...editingLeader, image: e.target.value })}
-                  className="w-full rounded border border-[#123a17] bg-[#050705] p-2 text-[#c8f7d0]"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[#c8f7d0]">Executive Headshot Photo</label>
+                  <label className="flex items-center gap-1.5 cursor-pointer rounded border border-[#00ff41]/50 bg-[#00ff41]/10 px-2.5 py-1 text-[11px] font-bold text-[#00ff41] hover:bg-[#00ff41]/20 transition-colors">
+                    <Upload size={12} />
+                    <span>UPLOAD HEADSHOT</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handlePhotoUpload(file, (dataUrl) => {
+                            setEditingLeader({ ...editingLeader, image: dataUrl });
+                            showNotification('Headshot photo updated.');
+                          });
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="h-14 w-14 rounded-lg border border-[#123a17] bg-[#050705] overflow-hidden shrink-0">
+                    <img
+                      src={editingLeader.image}
+                      alt={editingLeader.name}
+                      onError={handleImageError}
+                      className="h-full w-full object-cover object-top"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    value={editingLeader.image}
+                    onChange={(e) => setEditingLeader({ ...editingLeader, image: e.target.value })}
+                    className="w-full rounded border border-[#123a17] bg-[#050705] p-2 text-xs text-[#c8f7d0]"
+                    placeholder="Photo path or uploaded data URL"
+                  />
+                </div>
               </div>
 
               <div>

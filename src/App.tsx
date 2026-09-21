@@ -103,7 +103,7 @@ export const AppContent: React.FC = () => {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
   const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
   const [soundMuted, setSoundMuted] = useState<boolean>(() => soundEffects.isMuted());
-  const { isAuthenticated, logout: handleAdminLogout } = useAdminAuth();
+  const { isAuthenticated, refreshAuth, logout: handleAdminLogout } = useAdminAuth();
 
   const toggleSound = () => {
     const newMuted = soundEffects.toggleMute();
@@ -204,7 +204,7 @@ export const AppContent: React.FC = () => {
         <Suspense fallback={<CyberModuleLoader label="ADMIN_CMS_SUBSYSTEM" />}>
           {!isAuthenticated ? (
             <AdminAuthGate
-              onAuthenticated={() => {}}
+              onAuthenticated={refreshAuth}
               onCancel={() => navigateTo('home')}
             />
           ) : (

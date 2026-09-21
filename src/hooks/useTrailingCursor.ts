@@ -4,18 +4,18 @@ import { useEffect, useRef, useState } from 'react';
  * useTrailingCursor Hook
  * 
  * Non-technical explanation:
- * Manages the physics of the custom mouse pointer.
- * - Tracks the mouse coordinates instantly for pinpoint accuracy.
- * - Smoothly glides a glowing outer circle with a fluid trailing delay behind the pointer.
- * - Detects when the user hovers over interactive elements like buttons, cards, or links.
+ * Manages the physics and hardware coordinates of the custom cybernetic pointer:
+ * - 0ms instant hardware tracking for the center pinpoint dot (100% accurate clicks).
+ * - Butter-smooth fluid trailing interpolation (lerp) for the outer reticle and echo ring.
+ * - Auto-detects interactive hover elements without hiding the pointer.
  */
 
 interface TrailingCursorOptions {
-  /** Trailing smoothing factor. Lower value (e.g. 0.16) gives a smooth, fluid trailing circle */
+  /** Trailing smoothing factor (0.22 gives a fluid, responsive glide) */
   trailSpeed?: number;
 }
 
-export function useTrailingCursor({ trailSpeed = 0.16 }: TrailingCursorOptions = {}) {
+export function useTrailingCursor({ trailSpeed = 0.22 }: TrailingCursorOptions = {}) {
   const outerWrapperRef = useRef<HTMLDivElement | null>(null);
   const dotWrapperRef = useRef<HTMLDivElement | null>(null);
   const trailRingRef = useRef<HTMLDivElement | null>(null);
@@ -25,18 +25,18 @@ export function useTrailingCursor({ trailSpeed = 0.16 }: TrailingCursorOptions =
   const isVisibleRef = useRef(false);
 
   useEffect(() => {
-    // Only activate on devices with fine pointer (mouse/trackpad), ignore touch devices
+    // Only activate on devices with fine pointer (mouse/trackpad), ignore touch screens
     if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
       return;
     }
 
     document.documentElement.classList.add('cipher-custom-cursor');
 
-    // Hardware target coordinates
+    // Hardware target coordinates (latest mouse position)
     const target = { x: -100, y: -100 };
-    // Primary trailing circle coordinates
+    // Primary trailing reticle coordinates
     const trail = { x: -100, y: -100 };
-    // Secondary delayed echo ring coordinates for richer visual depth
+    // Secondary delayed echo ring coordinates
     const echo = { x: -100, y: -100 };
 
     let frameId: number;
@@ -44,24 +44,19 @@ export function useTrailingCursor({ trailSpeed = 0.16 }: TrailingCursorOptions =
 
     const renderLoop = () => {
       if (hasMoved) {
-        // Fluid trailing interpolation: smoothly trails behind the mouse
+        // High-precision lerp for fluid trailing motion
         trail.x += (target.x - trail.x) * trailSpeed;
         trail.y += (target.y - trail.y) * trailSpeed;
 
-        // Subtle secondary echo circle trailing slightly further behind
-        echo.x += (target.x - echo.x) * (trailSpeed * 0.7);
-        echo.y += (target.y - echo.y) * (trailSpeed * 0.7);
+        // Secondary ring trails fluidly behind the primary trail
+        echo.x += (trail.x - echo.x) * (trailSpeed * 0.72);
+        echo.y += (trail.y - echo.y) * (trailSpeed * 0.72);
 
-        // Update hardware transform directly (no CSS transition fighting RAF)
         if (outerWrapperRef.current) {
           outerWrapperRef.current.style.transform = `translate3d(${trail.x}px, ${trail.y}px, 0)`;
         }
         if (trailRingRef.current) {
           trailRingRef.current.style.transform = `translate3d(${echo.x}px, ${echo.y}px, 0)`;
-        }
-        if (dotWrapperRef.current) {
-          // Dot leads instantly right under user's cursor
-          dotWrapperRef.current.style.transform = `translate3d(${target.x}px, ${target.y}px, 0)`;
         }
       }
 
@@ -73,6 +68,11 @@ export function useTrailingCursor({ trailSpeed = 0.16 }: TrailingCursorOptions =
     const onMouseMove = (e: MouseEvent) => {
       target.x = e.clientX;
       target.y = e.clientY;
+
+      // Update hardware dot instantaneously on mousemove for 0ms click latency
+      if (dotWrapperRef.current) {
+        dotWrapperRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
+      }
 
       if (!hasMoved) {
         hasMoved = true;

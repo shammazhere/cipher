@@ -87,15 +87,15 @@ export function useSecureForm({ onSuccess, cooldownMs = 3000 }: UseSecureFormOpt
     }
 
     // 4. USN validation
-    if (formData.usn.trim() && !isValidUSN(formData.usn)) {
-      errs.usn = 'USN format should be like 4SO22CS001.';
+    if (!formData.usn.trim()) {
+      errs.usn = 'USN identifier is required.';
+    } else if (!isValidUSN(formData.usn)) {
+      errs.usn = 'USN format should match 4SO22CS001.';
     }
 
-    // 5. Message validation
-    if (!formData.message.trim()) {
-      errs.message = 'Please provide a brief statement of interest.';
-    } else if (formData.message.trim().length < 10) {
-      errs.message = 'Please write at least 10 characters.';
+    // 5. Message validation (Optional payload / Github link)
+    if (formData.message.trim() && formData.message.length > 500) {
+      errs.message = 'Payload note cannot exceed 500 characters.';
     }
 
     setErrors(errs);

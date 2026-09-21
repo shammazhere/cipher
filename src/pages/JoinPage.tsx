@@ -1,19 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Send,
   CheckCircle2,
   ShieldCheck,
   AlertCircle,
   HelpCircle,
-  Mail,
-  MapPin,
   ChevronDown,
   Terminal,
   Zap,
   Award,
   Cpu,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Lock,
+  Radio,
+  Hash
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useSecureForm } from '../hooks/useSecureForm';
@@ -24,10 +25,9 @@ import { soundEffects } from '../utils/soundEffects';
  * JoinPage Component (Page 5 of 5)
  * 
  * Non-technical explanation:
- * Dedicated standalone application and contact page.
- * Powered by the useSecureForm hook for XSS protection, anti-bot honeypot filtering,
- * USN/email validation, and spam rate-limiting.
- * Features an interactive FAQ accordion, member perks matrix, and recruitment timeline.
+ * Interactive hacker recruitment terminal for CIPHER membership.
+ * Takes only strictly required data (Callsign, USN, Email, Domain, optional payload)
+ * and is styled like an authentic cyberpunk terminal infiltration portal with live cryptographic telemetry.
  */
 
 export const JoinPage: React.FC = () => {
@@ -48,12 +48,24 @@ export const JoinPage: React.FC = () => {
       addApplication(cleanData);
       soundEffects.playSuccess();
       showToast({
-        title: 'APPLICATION TRANSMITTED',
-        message: 'Your candidate profile has been recorded in the CIPHER registry.',
+        title: 'TRANSMISSION VERIFIED',
+        message: 'Operative profile registered into CIPHER secure database.',
         type: 'success',
       });
     },
   });
+
+  // Simulated live cryptographic hash checksum based on current form inputs
+  const liveHash = useMemo(() => {
+    const raw = `${formData.name}:${formData.usn}:${formData.email}:${formData.domain}`;
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+      hash = (hash << 5) - hash + raw.charCodeAt(i);
+      hash |= 0;
+    }
+    const hex = Math.abs(hash).toString(16).padStart(8, '0');
+    return `0x${hex}7f9b2c${hex.slice(0, 4)}e1`;
+  }, [formData.name, formData.usn, formData.email, formData.domain]);
 
   const faqs = [
     {
@@ -64,17 +76,17 @@ export const JoinPage: React.FC = () => {
     {
       tag: 'PREREQUISITES',
       q: 'Is prior programming experience required?',
-      a: 'No prior experience required! We prioritize curiosity, consistency, and passion. We run hands-on foundational tracks alongside advanced hackathon engineering cohorts.',
+      a: 'No prior experience required! We prioritize curiosity, consistency, and passion. Foundational workshops run alongside advanced hackathon engineering cohorts.',
     },
     {
       tag: 'SELECTION',
       q: 'What does the induction process involve?',
-      a: 'After transmitting your encrypted registration, short friendly peer interviews are conducted with domain leads to align your technical passions with our projects.',
+      a: 'After transmitting your encrypted registration, short friendly peer interactions are conducted with domain leads to align your technical passions with club projects.',
     },
     {
       tag: 'COMMITMENT',
       q: 'What is the anticipated weekly commitment?',
-      a: 'Typically 2 to 4 hours weekly, fully adapted around your semester examination schedule, internal assessments, and academic coursework.',
+      a: 'Typically 2 to 4 hours weekly, fully scheduled around your semester examination timetable, internal assessments, and academic coursework.',
     },
   ];
 
@@ -107,13 +119,14 @@ export const JoinPage: React.FC = () => {
         {/* Header */}
         <div>
           <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-[#00ff41]">
-            <span>// ACCESS_CLUB // RECRUITMENT_PORTAL</span>
+            <Radio size={14} className="text-[#00ff41] animate-pulse" />
+            <span>// RECRUITMENT_PORTAL // CIPHER_NODE</span>
           </div>
           <h1 className="mt-4 font-display text-4xl sm:text-5xl font-bold text-[#c8f7d0] text-glow">
-            Join the CIPHER Community
+            Join the CIPHER Network
           </h1>
           <p className="mt-3 font-mono text-sm sm:text-base text-[#6fae78] max-w-2xl leading-relaxed">
-            Whether you want to build cutting-edge software, lead campus tech initiatives, or learn alongside ambitious peers, your journey begins here.
+            Transmit your candidate dossier to join the premier student computing association of St. Joseph Engineering College.
           </p>
         </div>
 
@@ -171,44 +184,71 @@ export const JoinPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-          {/* Left: Application Form */}
-          <div className="lg:col-span-7 rounded-2xl border border-[#00ff41]/40 bg-[#080d08] p-6 sm:p-10 shadow-[0_0_40px_rgba(0,0,0,0.8)]">
+          {/* Left: Hacker Terminal Recruitment Portal */}
+          <div className="lg:col-span-7 rounded-2xl border border-[#00ff41]/50 bg-[#080d08] shadow-[0_0_50px_rgba(0,255,65,0.2)] overflow-hidden">
+            {/* Terminal Window Header Bar */}
+            <div className="flex items-center justify-between border-b border-[#123a17] bg-[#050705] px-4 py-3 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-[#ff5f56]/80 border border-[#ff5f56]" />
+                <span className="h-3 w-3 rounded-full bg-[#ffbd2e]/80 border border-[#ffbd2e]" />
+                <span className="h-3 w-3 rounded-full bg-[#27c93f]/80 border border-[#27c93f]" />
+                <span className="ml-2 text-[11px] text-[#6fae78] font-mono hidden sm:inline">
+                  root@cipher-node: ~ /bin/recruit_operative.sh
+                </span>
+              </div>
+              <div className="flex items-center gap-2 font-mono text-[10px] text-[#00ff41]">
+                <Lock size={12} />
+                <span>TLS_1.3 // 256-BIT</span>
+              </div>
+            </div>
+
             {isSuccess ? (
-              <div className="py-12 text-center space-y-4">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[#00ff41] bg-[#00ff41]/10 text-[#00ff41]">
+              /* Success Terminal Clearance Badge */
+              <div className="p-8 sm:p-12 text-center space-y-5">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#00ff41] bg-[#00ff41]/10 text-[#00ff41] shadow-[0_0_30px_#00ff41]">
                   <CheckCircle2 size={36} />
                 </div>
-                <h3 className="font-display text-2xl font-bold text-[#c8f7d0] text-glow">
-                  Application Encrypted &amp; Logged
-                </h3>
+                <div>
+                  <span className="text-xs uppercase tracking-widest text-[#00ff41]">
+                    // STATUS: 200 OK
+                  </span>
+                  <h3 className="font-display text-2xl sm:text-3xl font-bold text-[#c8f7d0] text-glow mt-1">
+                    Operative Dossier Transmitted
+                  </h3>
+                </div>
                 <p className="text-xs sm:text-sm text-[#6fae78] max-w-md mx-auto leading-relaxed">
-                  Thank you for applying. Your registration has been securely synced with the CIPHER recruitment registry. Our executive council will reach out soon.
+                  Your registration packet has been securely logged with cryptographic checksum <code className="text-[#00ff41]">{liveHash}</code>. The executive council will notify your official college channel.
                 </p>
-                <div className="pt-4">
+                <div className="pt-2">
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="rounded border border-[#00ff41] bg-[#00ff41] px-6 py-2.5 text-xs font-bold text-[#050705] hover:bg-[#00ff66]"
+                    className="rounded border border-[#00ff41] bg-[#00ff41] px-6 py-2.5 text-xs font-bold uppercase text-[#050705] hover:bg-[#00ff66] transition-all hover:shadow-[0_0_20px_rgba(0,255,65,0.4)]"
                   >
-                    SUBMIT ANOTHER RESPONSE
+                    TRANSMIT ANOTHER PROFILE
                   </button>
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[#00ff41] border-b border-[#123a17] pb-3">
-                  <ShieldCheck size={16} />
-                  <span>SECURE REGISTRATION FORM</span>
+              /* Hacker Terminal Form */
+              <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-5 font-mono">
+                {/* Protocol Info */}
+                <div className="flex items-center justify-between text-[11px] text-[#6fae78] pb-2 border-b border-[#123a17]">
+                  <span className="flex items-center gap-1.5 text-[#00ff41]">
+                    <Terminal size={13} />
+                    <span>// INFILTRATION_REGISTER</span>
+                  </span>
+                  <span>FIELDS MARKED * ARE MANDATORY</span>
                 </div>
 
                 {errors.general && (
                   <div className="flex items-center gap-2 p-3 rounded border border-[#ff5f56]/40 bg-[#ff5f56]/10 text-xs text-[#ff5f56]">
-                    <AlertCircle size={14} />
+                    <AlertCircle size={14} className="shrink-0" />
                     <span>{errors.general}</span>
                   </div>
                 )}
 
-                {/* Anti-Bot Security Honeypot (Hidden from humans, catches bots) */}
+                {/* Anti-Bot Security Honeypot */}
                 <input
                   type="text"
                   name="_honeypot"
@@ -220,16 +260,18 @@ export const JoinPage: React.FC = () => {
                   className="hidden opacity-0 absolute -top-9999px -left-9999px pointer-events-none"
                 />
 
-                <div>
-                  <label className="block text-xs uppercase text-[#c8f7d0] mb-1">
-                    Full Name <span className="text-[#00ff41]">*</span>
+                {/* 1. Full Name / Callsign */}
+                <div className="space-y-1">
+                  <label className="flex items-center justify-between text-xs text-[#c8f7d0]">
+                    <span>&gt; ENTER_CALLSIGN [FULL NAME] *</span>
+                    <span className="text-[10px] text-[#2c7a3a]">REQUIRED</span>
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => handleChange('name', e.target.value)}
                     placeholder="e.g. John Doe"
-                    className="w-full rounded border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] focus:border-[#00ff41] focus:outline-none"
+                    className="w-full rounded border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] transition-colors focus:border-[#00ff41] focus:outline-none focus:shadow-[0_0_12px_rgba(0,255,65,0.2)]"
                   />
                   {errors.name && (
                     <span className="flex items-center gap-1 text-[11px] text-[#ff5f56] mt-1">
@@ -238,17 +280,19 @@ export const JoinPage: React.FC = () => {
                   )}
                 </div>
 
+                {/* 2. College USN & Semester in compact grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs uppercase text-[#c8f7d0] mb-1">
-                      College USN <span className="text-[#00ff41]">*</span>
+                  <div className="space-y-1">
+                    <label className="flex items-center justify-between text-xs text-[#c8f7d0]">
+                      <span>&gt; VERIFY_USN [COLLEGE USN] *</span>
+                      <span className="text-[10px] text-[#2c7a3a]">REQUIRED</span>
                     </label>
                     <input
                       type="text"
                       value={formData.usn}
                       onChange={(e) => handleChange('usn', e.target.value.toUpperCase())}
                       placeholder="4SO22CS..."
-                      className="w-full rounded border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] focus:border-[#00ff41] focus:outline-none uppercase"
+                      className="w-full rounded border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] uppercase transition-colors focus:border-[#00ff41] focus:outline-none focus:shadow-[0_0_12px_rgba(0,255,65,0.2)]"
                     />
                     {errors.usn && (
                       <span className="flex items-center gap-1 text-[11px] text-[#ff5f56] mt-1">
@@ -257,9 +301,10 @@ export const JoinPage: React.FC = () => {
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-xs uppercase text-[#c8f7d0] mb-1">
-                      Current Semester <span className="text-[#00ff41]">*</span>
+                  <div className="space-y-1">
+                    <label className="flex items-center justify-between text-xs text-[#c8f7d0]">
+                      <span>&gt; ACADEMIC_STAGE [SEMESTER] *</span>
+                      <span className="text-[10px] text-[#2c7a3a]">REQUIRED</span>
                     </label>
                     <select
                       value={formData.semester}
@@ -277,16 +322,18 @@ export const JoinPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs uppercase text-[#c8f7d0] mb-1">
-                    Email Address <span className="text-[#00ff41]">*</span>
+                {/* 3. Comms Link / Student Email */}
+                <div className="space-y-1">
+                  <label className="flex items-center justify-between text-xs text-[#c8f7d0]">
+                    <span>&gt; SECURE_COMMS_CHANNEL [STUDENT EMAIL] *</span>
+                    <span className="text-[10px] text-[#2c7a3a]">REQUIRED</span>
                   </label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleChange('email', e.target.value)}
                     placeholder="student@sjec.ac.in"
-                    className="w-full rounded border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] focus:border-[#00ff41] focus:outline-none"
+                    className="w-full rounded border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] transition-colors focus:border-[#00ff41] focus:outline-none focus:shadow-[0_0_12px_rgba(0,255,65,0.2)]"
                   />
                   {errors.email && (
                     <span className="flex items-center gap-1 text-[11px] text-[#ff5f56] mt-1">
@@ -295,32 +342,36 @@ export const JoinPage: React.FC = () => {
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-xs uppercase text-[#c8f7d0] mb-1">
-                    Primary Domain Preference <span className="text-[#00ff41]">*</span>
+                {/* 4. Domain Preference */}
+                <div className="space-y-1">
+                  <label className="flex items-center justify-between text-xs text-[#c8f7d0]">
+                    <span>&gt; ASSIGN_OPERATIONAL_DOMAIN *</span>
+                    <span className="text-[10px] text-[#2c7a3a]">REQUIRED</span>
                   </label>
                   <select
                     value={formData.domain}
                     onChange={(e) => handleChange('domain', e.target.value)}
                     className="w-full rounded border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] focus:border-[#00ff41] focus:outline-none"
                   >
-                    <option value="Full-Stack Engineering">Full-Stack Engineering (Web &amp; Cloud)</option>
-                    <option value="Machine Learning & Analytics">Machine Learning &amp; Data Analytics</option>
-                    <option value="Cybersecurity">Cybersecurity &amp; Cryptography (CTFs &amp; Auditing)</option>
-                    <option value="Events & Design Operations">Events &amp; Design Operations</option>
+                    <option value="Cybersecurity & CTFs">Cybersecurity &amp; CTFs (PenTesting, Cryptography, Forensics)</option>
+                    <option value="Full-Stack Engineering">Full-Stack Engineering (Web, Cloud &amp; Distributed Systems)</option>
+                    <option value="Machine Learning & AI">Machine Learning &amp; AI (Deep Learning, Vision, LLMs)</option>
+                    <option value="Events & Tactical Operations">Events &amp; Tactical Operations (Symposiums &amp; Design)</option>
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs uppercase text-[#c8f7d0] mb-1">
-                    Statement of Interest <span className="text-[#00ff41]">*</span>
+                {/* 5. Optional Quick Payload / GitHub profile */}
+                <div className="space-y-1">
+                  <label className="flex items-center justify-between text-xs text-[#c8f7d0]">
+                    <span>&gt; PAYLOAD / GITHUB_VECTOR / NOTES</span>
+                    <span className="text-[10px] text-[#2c7a3a]">OPTIONAL</span>
                   </label>
-                  <textarea
-                    rows={4}
+                  <input
+                    type="text"
                     value={formData.message}
                     onChange={(e) => handleChange('message', e.target.value)}
-                    placeholder="Tell us what you want to learn, your background, or what you hope to build..."
-                    className="w-full rounded border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] focus:border-[#00ff41] focus:outline-none resize-none"
+                    placeholder="e.g. github.com/username or topics you want to build"
+                    className="w-full rounded border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] transition-colors focus:border-[#00ff41] focus:outline-none"
                   />
                   {errors.message && (
                     <span className="flex items-center gap-1 text-[11px] text-[#ff5f56] mt-1">
@@ -329,17 +380,28 @@ export const JoinPage: React.FC = () => {
                   )}
                 </div>
 
+                {/* Live Cryptographic Telemetry Box */}
+                <div className="flex items-center justify-between rounded border border-[#123a17] bg-[#050705] p-2.5 text-[11px] text-[#6fae78]">
+                  <div className="flex items-center gap-1.5 overflow-hidden text-ellipsis">
+                    <Hash size={13} className="text-[#00ff41] shrink-0" />
+                    <span className="text-[10px] text-[#2c7a3a] uppercase shrink-0">DIGEST:</span>
+                    <code className="text-[#00ff41] truncate">{liveHash}</code>
+                  </div>
+                  <span className="text-[10px] uppercase text-[#00ff41] shrink-0 font-bold ml-2">READY</span>
+                </div>
+
+                {/* Terminal Submit Action */}
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full flex items-center justify-center gap-2 rounded bg-[#00ff41] py-3.5 text-xs font-bold uppercase text-[#050705] hover:bg-[#00ff66] transition-all hover:shadow-[0_0_20px_rgba(0,255,65,0.4)] disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#00ff41] py-3.5 text-xs font-bold uppercase text-[#050705] hover:bg-[#00ff66] transition-all hover:shadow-[0_0_25px_rgba(0,255,65,0.45)] disabled:opacity-50"
                   data-cursor="lens"
                 >
                   {isSubmitting ? (
-                    <span>TRANSMITTING...</span>
+                    <span>TRANSMITTING ENCRYPTED DOSSIER...</span>
                   ) : (
                     <>
-                      <span>TRANSMIT APPLICATION</span>
+                      <span>EXECUTE TRANSMISSION // SECURE POST</span>
                       <Send size={14} />
                     </>
                   )}
@@ -368,31 +430,30 @@ export const JoinPage: React.FC = () => {
                       className={`rounded-lg border transition-all duration-200 overflow-hidden ${
                         isOpen
                           ? 'border-[#00ff41] bg-[#0e1613]'
-                          : 'border-[#123a17] bg-[#050705]/80 hover:border-[#123a17]/80'
+                          : 'border-[#123a17] bg-[#050705] hover:border-[#1e5225]'
                       }`}
                     >
                       <button
                         type="button"
                         onClick={() => setOpenFaq(isOpen ? null : index)}
-                        className="w-full flex items-center justify-between p-3.5 text-left text-xs transition-colors"
+                        className="flex w-full items-center justify-between p-4 text-left font-mono text-xs text-[#c8f7d0] transition-colors"
                       >
-                        <div className="flex items-center gap-2 pr-2">
-                          <span className="font-mono text-[10px] text-[#00ff41] font-bold">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-[10px] text-[#00ff41] font-bold">
                             [{faq.tag}]
                           </span>
-                          <span className={`font-semibold ${isOpen ? 'text-[#00ff41]' : 'text-[#c8f7d0]'}`}>
-                            {faq.q}
-                          </span>
+                          <span className="font-bold">{faq.q}</span>
                         </div>
                         <ChevronDown
                           size={15}
-                          className={`text-[#00ff41] shrink-0 transition-transform duration-200 ${
-                            isOpen ? 'rotate-180' : ''
+                          className={`text-[#6fae78] transition-transform duration-200 ${
+                            isOpen ? 'rotate-180 text-[#00ff41]' : ''
                           }`}
                         />
                       </button>
+
                       {isOpen && (
-                        <div className="px-3.5 pb-3.5 text-xs text-[#6fae78] leading-relaxed border-t border-[#123a17]/60 pt-2.5">
+                        <div className="px-4 pb-4 font-mono text-xs text-[#6fae78] leading-relaxed border-t border-[#123a17] pt-3">
                           {faq.a}
                         </div>
                       )}
@@ -402,25 +463,14 @@ export const JoinPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Direct Contact Desk */}
-            <div className="rounded-xl border border-[#123a17] bg-[#080d08] p-6 sm:p-8 space-y-4 text-xs">
-              <h3 className="font-display text-base font-bold text-[#00ff41]">
-                Department Contact Desk
-              </h3>
-              <div className="space-y-3 text-[#c8f7d0]/80">
-                <div className="flex items-start gap-3">
-                  <MapPin size={16} className="text-[#00ff41] shrink-0 mt-0.5" />
-                  <span>
-                    Department of CSE, Academic Block III,<br />
-                    St. Joseph Engineering College, Vamanjoor, Mangaluru - 575028
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Mail size={16} className="text-[#00ff41] shrink-0" />
-                  <a href={`mailto:${siteConfig.socialLinks.email}`} className="hover:text-[#00ff41] underline">
-                    {siteConfig.socialLinks.email}
-                  </a>
-                </div>
+            {/* Department Desk Telemetry */}
+            <div className="rounded-xl border border-[#123a17] bg-[#080d08] p-6 text-xs text-[#6fae78] space-y-3 font-mono">
+              <span className="text-[#00ff41] uppercase tracking-wider font-bold block">
+                DEPARTMENT CONTACT DESK
+              </span>
+              <p>St. Joseph Engineering College, Vamanjoor, Mangaluru, Karnataka 575028</p>
+              <div className="pt-2 border-t border-[#123a17] text-[#c8f7d0]">
+                Email: <code className="text-[#00ff41]">cipher@sjec.ac.in</code>
               </div>
             </div>
           </div>
