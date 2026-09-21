@@ -38,7 +38,7 @@ export const Footer: React.FC<FooterProps> = ({ currentPage, onNavigate }) => {
           <div className="md:col-span-5 flex flex-col items-start text-left">
             <div className="flex items-center gap-3">
               <img
-                src="/images/cipher-logo.png"
+                src="/images/cipher-logo.webp"
                 alt="CIPHER Emblem"
                 onError={handleImageError}
                 className="h-9 w-auto object-contain drop-shadow-[0_0_8px_rgba(0,255,65,0.4)]"

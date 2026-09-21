@@ -9,10 +9,10 @@
 
 /** Map of extensions to try as fallbacks, ordered by priority */
 const FALLBACK_MAP: Record<string, string[]> = {
-  '.webp': ['.jpg', '.png'],
-  '.jpg': ['.webp', '.png'],
-  '.jpeg': ['.webp', '.png'],
-  '.png': ['.webp', '.jpg'],
+  '.jpg': ['.webp'],
+  '.jpeg': ['.webp'],
+  '.png': ['.webp'],
+  '.webp': [],
 };
 
 /**

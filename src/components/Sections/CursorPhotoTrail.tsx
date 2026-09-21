@@ -32,10 +32,10 @@ export const CursorPhotoTrail: React.FC = () => {
   const lastMousePos = useRef<{ x: number; y: number; time: number } | null>(null);
 
   const images = siteConfig.trailImages || [
-    '/images/trail/1.jpg',
-    '/images/trail/2.jpg',
-    '/images/trail/3.jpg',
-    '/images/trail/4.jpg',
+    '/images/trail/1.webp',
+    '/images/trail/2.webp',
+    '/images/trail/3.webp',
+    '/images/trail/4.webp',
   ];
 
   // Remove photo once animation completes

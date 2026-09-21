@@ -69,7 +69,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           data-cursor="lens"
         >
           <img
-            src="/images/cipher-logo.png"
+            src="/images/cipher-logo.webp"
             alt="CIPHER Emblem"
             className="h-10 w-auto object-contain drop-shadow-[0_0_10px_rgba(0,255,65,0.4)]"
             onError={handleImageError}
