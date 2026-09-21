@@ -1,69 +1,81 @@
-import React from 'react';
-import { ArrowRight, ArrowUp } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { ArrowRight } from 'lucide-react';
 import { MatrixRain } from '../Preloader/MatrixRain';
-import { useData } from '../../context/DataContext';
+import { MagneticButton } from '../UI/MagneticButton';
+import { JoinModal } from '../Modals/JoinModal';
+
+import { TextScramble } from '../UI/TextScramble';
 
 /**
  * Join Section Component
  * 
  * Non-technical explanation:
- * The bottom call-to-action section inviting students to join the team,
- * launch the membership form, or scroll smoothly back up to the top.
+ * Section 5 from the reference video:
+ * - Headline "// access club" and "Join the Team" with Matrix scramble letter decryption.
+ * - Monospace call-to-action text.
+ * - Magnetic buttons: "Join →" (opens Access Request modal) and "Back to Top" (smooth scrolls to top).
  */
 
 interface JoinSectionProps {
-  onOpenJoin: () => void;
+  onOpenJoin?: () => void;
 }
 
 export const JoinSection: React.FC<JoinSectionProps> = ({ onOpenJoin }) => {
-  const { siteConfig } = useData();
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
 
-  const handleScrollTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleOpen = () => {
+    if (onOpenJoin) onOpenJoin();
+    else setModalOpen(true);
   };
 
   return (
-    <section id="join" className="relative overflow-hidden border-t border-[#123a17] py-28 md:py-36">
-      {/* Background Matrix rain & gradient */}
-      <MatrixRain opacity={0.1} />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#050705] via-transparent to-[#050705]" />
+    <>
+      <section id="join" className="relative overflow-hidden border-t border-[var(--border)] py-28">
+        {/* Background matrix rain & subtle gradient */}
+        <MatrixRain opacity={0.1} />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#050705] via-transparent to-[#050705]" />
 
-      <div className="relative mx-auto max-w-3xl px-6 text-center z-10">
-        <div className="mb-4 font-mono text-xs uppercase tracking-[0.4em] text-[#00ff41]">
-          // ACCESS CLUB
-        </div>
+        <div className="relative mx-auto max-w-3xl px-5 text-center">
+          <div className="mb-4 font-mono text-xs uppercase tracking-[0.4em] text-[var(--matrix)]">
+            // access club
+          </div>
+          <TextScramble
+            as="h2"
+            text="Join the Team"
+            className="font-display text-4xl leading-tight text-foreground text-glow sm:text-5xl md:text-6xl"
+          />
 
-        <h2 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-[#c8f7d0] text-glow">
-          Join the Team
-        </h2>
-
-        <p className="mx-auto mt-6 max-w-xl font-mono text-sm sm:text-base leading-relaxed text-[#6fae78]">
-          {siteConfig.joinSubtitle}
-        </p>
-
-        {/* Action buttons */}
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <button
-            type="button"
-            onClick={onOpenJoin}
-            className="group flex w-full sm:w-auto items-center justify-center gap-2.5 rounded bg-[#00ff41] px-8 py-3.5 font-mono text-xs font-bold uppercase tracking-wider text-[#050705] transition-all hover:bg-[#00ff66] hover:shadow-[0_0_25px_rgba(0,255,65,0.6)]"
-            data-cursor="lens"
+          <motion.p
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className="mx-auto mt-6 max-w-xl font-mono text-base leading-relaxed text-muted-foreground"
           >
-            <span>JOIN</span>
-            <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
-          </button>
+            Whether you want to build, lead, or simply learn — CIPHER is where CSE students
+            turn curiosity into capability. Join the community and help shape what comes next.
+          </motion.p>
 
-          <button
-            type="button"
-            onClick={handleScrollTop}
-            className="flex w-full sm:w-auto items-center justify-center gap-2 rounded border border-[#123a17] bg-[#080d08]/70 px-8 py-3.5 font-mono text-xs font-semibold uppercase tracking-wider text-[#c8f7d0] transition-all hover:border-[#00ff41] hover:text-[#00ff41]"
-            data-cursor="lens"
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
           >
-            <ArrowUp size={14} />
-            <span>BACK TO TOP</span>
-          </button>
+            <MagneticButton onClick={handleOpen} variant="solid">
+              Join <ArrowRight size={16} />
+            </MagneticButton>
+            <MagneticButton href="#top" variant="outline">
+              Back to Top
+            </MagneticButton>
+          </motion.div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      {/* Access Request Modal */}
+      <JoinModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
+    </>
   );
 };

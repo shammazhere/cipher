@@ -6,10 +6,10 @@ import { MatrixRain } from './MatrixRain';
  * MatrixBoot Preloader Component
  * 
  * Non-technical explanation:
- * This component runs the cyberpunk intro when someone visits the site:
- * 1. Simulates connection & loading terminal lines.
- * 2. Unscrambles and decrypts the large glowing CIPHER logo.
- * 3. Lets the user click "[ SKIP > ]" or press Enter/Space/Escape at any time.
+ * Exactly replicates the reference intro experience:
+ * 1. Boot Terminal: Typing sequence with live module progress bar and Matrix rain.
+ * 2. Decrypt Phase: Giant glowing gothic Matrix font CIPHER logo with interactive pointer
+ *    proximity unscramble and seamless upward exit transition into the main page.
  */
 
 interface MatrixBootProps {
@@ -17,21 +17,20 @@ interface MatrixBootProps {
 }
 
 const TERMINAL_LOGS = [
-  "> establishing connection...",
-  "> authenticating access...",
-  "> decrypting CIPHER_v1.0...",
-  "__PROGRESS__",
-  "> access granted"
+  '> establishing connection...',
+  '> authenticating access...',
+  '> decrypting CIPHER_v1.0...',
+  '__PROGRESS__',
+  '> access granted',
 ];
 
-const TARGET_WORD = "CIPHER";
-const SCRAMBLE_GLYPHS = "#$%&@!?<>[]{}=+*/01ΣΦΨΩ";
+const TARGET_WORD = 'CIPHER';
+const SCRAMBLE_CHARS = '#$%&@!?<>[]{}=+*/01ΣΦΨΩ';
 
 export const MatrixBoot: React.FC<MatrixBootProps> = ({ onComplete }) => {
   const [phase, setPhase] = useState<'boot' | 'decrypt' | 'done'>('boot');
   const hasFinished = useRef(false);
 
-  // Complete preloader and notify parent
   const handleDone = useCallback(() => {
     if (hasFinished.current) return;
     hasFinished.current = true;
@@ -39,13 +38,12 @@ export const MatrixBoot: React.FC<MatrixBootProps> = ({ onComplete }) => {
     try {
       sessionStorage.setItem('cipher_boot_seen', 'true');
     } catch {
-      // ignore storage errors
+      // ignore
     }
-    setTimeout(onComplete, 600);
+    setTimeout(onComplete, 650);
   }, [onComplete]);
 
-  // Advance step (or skip)
-  const handleSkipOrAdvance = useCallback(() => {
+  const handleAdvanceOrSkip = useCallback(() => {
     if (phase === 'boot') {
       setPhase('decrypt');
     } else {
@@ -53,44 +51,41 @@ export const MatrixBoot: React.FC<MatrixBootProps> = ({ onComplete }) => {
     }
   }, [phase, handleDone]);
 
-  // Keyboard and scroll listeners for instant skip
   useEffect(() => {
     if (phase === 'done') return;
 
-    const handleKey = (e: KeyboardEvent) => {
+    const onWheel = () => handleAdvanceOrSkip();
+    const onKeyDown = (e: KeyboardEvent) => {
       if (['Enter', ' ', 'Escape'].includes(e.key)) {
-        handleSkipOrAdvance();
+        handleAdvanceOrSkip();
       }
     };
 
-    const handleWheel = () => {
-      handleSkipOrAdvance();
-    };
-
-    window.addEventListener('keydown', handleKey);
-    window.addEventListener('wheel', handleWheel, { passive: true });
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('keydown', onKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', handleKey);
-      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('keydown', onKeyDown);
     };
-  }, [phase, handleSkipOrAdvance]);
+  }, [phase, handleAdvanceOrSkip]);
 
   return (
     <AnimatePresence>
       {phase !== 'done' && (
         <motion.div
-          className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden bg-[#050705] bg-scanlines cursor-pointer"
-          onClick={handleSkipOrAdvance}
+          key="intro"
+          className="fixed inset-0 z-[200] overflow-hidden bg-[#050705] bg-scanlines cursor-pointer"
+          onClick={handleAdvanceOrSkip}
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, filter: 'blur(8px)' }}
+          exit={{ opacity: 0, filter: 'blur(6px)' }}
           transition={{ duration: 0.6, ease: 'easeInOut' }}
         >
           {/* Matrix Rain Canvas Background */}
-          <MatrixRain opacity={0.22} intense={true} />
+          <MatrixRain opacity={0.18} intense={true} />
 
-          {/* Center Stage: Boot Terminal or Logo Decryption */}
-          <div className="relative z-10 w-full max-w-4xl px-6">
+          {/* Center Stage Content */}
+          <div className="absolute inset-0 flex items-center justify-center p-6">
             {phase === 'boot' ? (
               <BootTerminal onReady={() => setPhase('decrypt')} />
             ) : (
@@ -98,16 +93,16 @@ export const MatrixBoot: React.FC<MatrixBootProps> = ({ onComplete }) => {
             )}
           </div>
 
-          {/* Skip Button */}
+          {/* Bottom Right Skip Trigger */}
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              handleDone();
+              handleAdvanceOrSkip();
             }}
-            className="absolute bottom-8 right-8 z-20 font-mono text-xs uppercase tracking-widest text-[#2c7a3a] transition-all duration-200 hover:text-[#00ff41] hover:scale-105 border border-[#123a17] bg-[#050705]/80 px-4 py-2 rounded"
+            className="absolute bottom-6 right-6 z-10 font-mono text-xs uppercase tracking-widest text-[var(--matrix-dim)] transition-colors hover:text-[var(--matrix)]"
           >
-            [ SKIP &gt; ]
+            [ skip &gt; ]
           </button>
         </motion.div>
       )}
@@ -115,157 +110,182 @@ export const MatrixBoot: React.FC<MatrixBootProps> = ({ onComplete }) => {
   );
 };
 
-// Stage 1: Terminal text typewriter with progress bar
-const BootTerminal: React.FC<{ onReady: () => void }> = ({ onReady }) => {
-  const [completedLines, setCompletedLines] = useState<string[]>([]);
-  const [currentTyped, setCurrentTyped] = useState<string>('');
-  const [currentLineIndex, setCurrentLineIndex] = useState<number>(0);
-  const [progressPercent, setProgressPercent] = useState<number>(0);
-  const finishedRef = useRef(false);
+interface BootTerminalProps {
+  onReady: () => void;
+}
 
-  // Simulated loading bar counter
+const BootTerminal: React.FC<BootTerminalProps> = ({ onReady }) => {
+  const [lines, setLines] = useState<string[]>([]);
+  const [currentText, setCurrentText] = useState<string>('');
+  const [lineIndex, setLineIndex] = useState<number>(0);
+  const [progressVal, setProgressVal] = useState<number>(0);
+  const readyCalledRef = useRef<boolean>(false);
+
+  // Smooth progress tracking
   useEffect(() => {
-    let frameId: number;
-    let target = 25;
-    const startTime = performance.now();
+    let target = 15;
+    let animId = 0;
+    const start = performance.now();
 
-    const updateTarget = (val: number) => {
+    const bump = (val: number) => {
       target = Math.max(target, val);
     };
 
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(() => bump(70));
+    }
     if (document.readyState === 'complete') {
-      updateTarget(100);
+      bump(100);
     } else {
-      window.addEventListener('load', () => updateTarget(100), { once: true });
+      window.addEventListener('load', () => bump(100), { once: true });
     }
 
-    const step = () => {
-      if (performance.now() - startTime > 1800) target = 100;
-      setProgressPercent((prev) => {
-        const next = prev + (target - prev) * 0.08 + 0.5;
-        return Math.min(next, 100);
-      });
-      frameId = requestAnimationFrame(step);
+    const tick = () => {
+      if (performance.now() - start > 3000) target = 100;
+      setProgressVal((prev) => Math.min(prev + (target - prev) * 0.06 + 0.4, 100));
+      animId = requestAnimationFrame(tick);
     };
 
-    frameId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frameId);
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
   }, []);
 
-  const progressBarText = useMemo(() => {
-    const rounded = Math.round(progressPercent);
-    const bars = Math.round((rounded / 100) * 10);
-    const filled = '='.repeat(bars);
-    const empty = ' '.repeat(10 - bars);
-    return `> loading modules... [${filled}${empty}] ${rounded}%`;
-  }, [progressPercent]);
+  const progressBarString = useMemo(() => {
+    const rounded = Math.round(progressVal);
+    const filled = Math.round((rounded / 100) * 10);
+    const bar = '='.repeat(filled) + ' '.repeat(10 - filled);
+    return `> loading modules... [${bar}] ${rounded}%`;
+  }, [progressVal]);
 
-  // Line typewriter logic
+  // Terminal Line Typing Sequence
   useEffect(() => {
-    if (currentLineIndex >= TERMINAL_LOGS.length) {
-      if (!finishedRef.current) {
-        finishedRef.current = true;
-        const timer = setTimeout(onReady, 450);
-        return () => clearTimeout(timer);
-      }
-      return;
-    }
-
-    const targetLine = TERMINAL_LOGS[currentLineIndex];
+    if (lineIndex >= TERMINAL_LOGS.length) return;
+    const targetLine = TERMINAL_LOGS[lineIndex];
 
     if (targetLine === '__PROGRESS__') {
-      if (progressPercent < 99.5) {
-        setCurrentTyped(progressBarText);
+      if (progressVal < 99.5) {
+        setCurrentText(progressBarString);
         return;
       } else {
-        setCompletedLines((prev) => [...prev, progressBarText]);
-        setCurrentTyped('');
-        setCurrentLineIndex((prev) => prev + 1);
+        setLines((prev) => [...prev, progressBarString]);
+        setCurrentText('');
+        setLineIndex((prev) => prev + 1);
         return;
       }
     }
 
     let charPos = 0;
-    setCurrentTyped('');
+    setCurrentText('');
     const interval = setInterval(() => {
       charPos++;
-      setCurrentTyped(targetLine.slice(0, charPos));
+      setCurrentText(targetLine.slice(0, charPos));
       if (charPos >= targetLine.length) {
         clearInterval(interval);
         setTimeout(() => {
-          setCompletedLines((prev) => [...prev, targetLine]);
-          setCurrentTyped('');
-          setCurrentLineIndex((prev) => prev + 1);
-        }, 60);
+          setLines((prev) => [...prev, targetLine]);
+          setCurrentText('');
+          setLineIndex((prev) => prev + 1);
+        }, 50);
       }
-    }, 12);
+    }, 10);
 
     return () => clearInterval(interval);
-  }, [currentLineIndex, progressPercent >= 99.5, onReady]);
+  }, [lineIndex, progressVal >= 99.5]);
 
-  // Keep progress bar updated while on that line
   useEffect(() => {
-    if (TERMINAL_LOGS[currentLineIndex] === '__PROGRESS__' && progressPercent < 99.5) {
-      setCurrentTyped(progressBarText);
+    if (TERMINAL_LOGS[lineIndex] === '__PROGRESS__' && progressVal < 99.5) {
+      setCurrentText(progressBarString);
     }
-  }, [progressBarText, currentLineIndex, progressPercent]);
+  }, [progressBarString, lineIndex, progressVal]);
+
+  useEffect(() => {
+    if (lineIndex >= TERMINAL_LOGS.length && !readyCalledRef.current) {
+      readyCalledRef.current = true;
+      const timeout = setTimeout(onReady, 500);
+      return () => clearTimeout(timeout);
+    }
+  }, [lineIndex, onReady]);
 
   return (
-    <div className="font-mono text-sm leading-relaxed text-[#00ff41] sm:text-base md:text-lg max-w-xl mx-auto space-y-2">
-      {completedLines.map((line, idx) => (
-        <div
-          key={idx}
-          className={line === '> access granted' ? 'text-glow font-bold text-[#00ff66]' : ''}
-        >
-          {line}
+    <div className="w-full max-w-xl font-mono text-sm leading-relaxed text-[var(--matrix)] sm:text-base">
+      {lines.map((l, idx) => (
+        <div key={idx} className={l === '> access granted' ? 'text-glow text-[var(--matrix)]' : ''}>
+          {l}
         </div>
       ))}
-      {currentLineIndex < TERMINAL_LOGS.length && (
+      {lineIndex < TERMINAL_LOGS.length && (
         <div>
-          <span>{currentTyped}</span>
-          <span className="cursor-blink ml-1">█</span>
+          <span>{currentText}</span>
+          <span className="cursor-blink">█</span>
         </div>
       )}
     </div>
   );
 };
 
-// Stage 2: Scramble Decryption of CIPHER logo
-const CipherDecrypt: React.FC<{ onResolved: () => void }> = ({ onResolved }) => {
-  const [letters, setLetters] = useState<string[]>(() => TARGET_WORD.split('').map(() => '#'));
-  const solvedRef = useRef<boolean[]>(new Array(TARGET_WORD.length).fill(false));
-  const startTimeRef = useRef(performance.now());
-  const mousePos = useRef({ x: -9999, y: -9999, active: false });
+interface CipherDecryptProps {
+  onResolved: () => void;
+}
+
+const CipherDecrypt: React.FC<CipherDecryptProps> = ({ onResolved }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const letterRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const [letters, setLetters] = useState<string[]>(() => TARGET_WORD.split(''));
+  const solvedRef = useRef<boolean[]>(TARGET_WORD.split('').map(() => false));
+  const pointerPos = useRef({ x: -9999, y: -9999, active: false });
 
   useEffect(() => {
-    let animId: number;
-    let lastTick = 0;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setLetters(TARGET_WORD.split(''));
+      const t = setTimeout(onResolved, 700);
+      return () => clearTimeout(t);
+    }
+
+    let animId = 0;
+    let lastScramble = 0;
+    const startTime = performance.now();
 
     const onPointerMove = (e: PointerEvent) => {
-      mousePos.current = { x: e.clientX, y: e.clientY, active: true };
+      pointerPos.current = { x: e.clientX, y: e.clientY, active: true };
     };
 
     window.addEventListener('pointermove', onPointerMove);
 
     const tick = (now: number) => {
-      const elapsed = now - startTimeRef.current;
-      const lettersToSolve = Math.floor(elapsed / 250);
+      const elapsed = now - startTime;
+      const lettersToSolve = Math.floor(elapsed / 420);
 
-      // Solve letters progressively
       for (let i = 0; i < TARGET_WORD.length; i++) {
         if (i < lettersToSolve) {
           solvedRef.current[i] = true;
         }
       }
 
-      if (now - lastTick > 50) {
-        lastTick = now;
-        setLetters(() =>
+      let curX = pointerPos.current.x;
+      let curY = pointerPos.current.y;
+
+      if (!pointerPos.current.active && containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const swing = (Math.sin(elapsed / 700) + 1) / 2;
+        curX = rect.left + swing * rect.width;
+        curY = rect.top + rect.height / 2;
+      }
+
+      if (now - lastScramble > 55) {
+        lastScramble = now;
+        setLetters(
           TARGET_WORD.split('').map((char, idx) => {
-            if (solvedRef.current[idx]) {
-              return char;
+            if (solvedRef.current[idx]) return char;
+            const el = letterRefs.current[idx];
+            if (el) {
+              const r = el.getBoundingClientRect();
+              const cx = r.left + r.width / 2;
+              const cy = r.top + r.height / 2;
+              if (Math.hypot(cx - curX, cy - curY) < 90) {
+                return char;
+              }
             }
-            return SCRAMBLE_GLYPHS[Math.floor(Math.random() * SCRAMBLE_GLYPHS.length)];
+            return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
           })
         );
       }
@@ -273,7 +293,7 @@ const CipherDecrypt: React.FC<{ onResolved: () => void }> = ({ onResolved }) => 
       if (lettersToSolve >= TARGET_WORD.length + 1) {
         setLetters(TARGET_WORD.split(''));
         window.removeEventListener('pointermove', onPointerMove);
-        setTimeout(onResolved, 400);
+        setTimeout(onResolved, 500);
         return;
       }
 
@@ -290,21 +310,28 @@ const CipherDecrypt: React.FC<{ onResolved: () => void }> = ({ onResolved }) => 
 
   return (
     <motion.div
-      className="flex flex-col items-center justify-center text-center select-none"
-      initial={{ scale: 0.9, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0.7, opacity: 0, y: -60 }}
-      transition={{ duration: 0.4 }}
+      className="relative flex w-full flex-col items-center justify-center"
+      initial={{ scale: 1, opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ scale: 0.4, opacity: 0, y: -140 }}
+      transition={{ duration: 0.5 }}
     >
-      <div className="font-mono text-[clamp(3.5rem,14vw,11rem)] font-bold tracking-widest text-[#00ff41] text-glow-strong flex justify-center">
-        {letters.map((char, index) => (
-          <span key={index} className="inline-block w-[0.8em] text-center">
+      <div
+        ref={containerRef}
+        className="font-matrix flex select-none text-[clamp(3.5rem,20vw,16rem)] leading-none tracking-tight text-[var(--matrix)] text-glow-strong"
+      >
+        {letters.map((char, idx) => (
+          <span
+            key={idx}
+            ref={(el) => {
+              letterRefs.current[idx] = el;
+            }}
+            className="inline-block w-[0.72em] text-center"
+            aria-hidden="true"
+          >
             {char}
           </span>
         ))}
-      </div>
-      <div className="mt-4 font-mono text-xs uppercase tracking-[0.3em] text-[#6fae78]">
-        [ DECRYPTING SECURITY PROTOCOL ]
       </div>
     </motion.div>
   );

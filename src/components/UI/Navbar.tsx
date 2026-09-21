@@ -1,177 +1,112 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Settings } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { handleImageError } from '../../utils/imageFallback';
 
 /**
  * Navbar Component
  * 
  * Non-technical explanation:
- * Top navigation bar connecting all primary pages (Home, About, Events, Team, Join),
- * the Admin CMS dashboard, and a direct 'JOIN CIPHER' call to action.
+ * Fixed top cyber navigation header matching the reference video and live site:
+ * - Prominent winged CIPHER emblem.
+ * - Monospace navigation anchors (Home, About, Leadership, Events, Join) with
+ *   sleek neon green underline animation on hover.
+ * - Outline "Join CIPHER" button.
+ * - Mobile responsive drawer.
  */
 
-interface NavbarProps {
-  currentPage: string;
-  onNavigate: (page: string) => void;
-  onOpenJoin: () => void;
-}
+const NAV_ITEMS = [
+  { label: 'Home', href: '#top' },
+  { label: 'About', href: '#about' },
+  { label: 'Leadership', href: '#leadership' },
+  { label: 'Events', href: '#events' },
+  { label: 'Join', href: '#join' },
+];
 
-export const Navbar: React.FC<NavbarProps> = ({
-  currentPage,
-  onNavigate,
-  onOpenJoin,
-}) => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+export const Navbar: React.FC = () => {
+  const [isScrolled, setIsScrolled] = useState<boolean>(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      setIsScrolled(window.scrollY > 40);
     };
-    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navLinks = [
-    { id: 'home', name: 'HOME' },
-    { id: 'about', name: 'ABOUT' },
-    { id: 'events', name: 'EVENTS' },
-    { id: 'team', name: 'TEAM' },
-    { id: 'join', name: 'JOIN' },
-  ];
-
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? 'bg-[#050705]/90 backdrop-blur-md border-b border-[#123a17] shadow-[0_4px_30px_rgba(0,0,0,0.8)]'
-          : 'bg-transparent border-b border-transparent'
+          ? 'border-b border-[var(--border)] bg-[#050705]/85 backdrop-blur-md'
+          : 'border-b border-transparent'
       }`}
     >
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-10">
-        {/* Left: Brand Emblem & Home link */}
-        <button
-          type="button"
-          onClick={() => onNavigate('home')}
-          className="group flex items-center gap-3 transition-transform duration-200 hover:scale-[1.02] text-left"
-          data-cursor="lens"
-        >
+      <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+        {/* Emblem Logo */}
+        <a href="#top" className="-ml-2 flex items-center md:-ml-4" aria-label="CIPHER home" data-cursor="lens">
           <img
             src="/images/cipher-logo.webp"
-            alt="CIPHER Emblem"
-            className="h-10 w-auto object-contain drop-shadow-[0_0_10px_rgba(0,255,65,0.4)]"
+            alt="CIPHER"
             onError={handleImageError}
+            className="h-16 w-auto md:h-20"
           />
-          <div className="flex flex-col">
-            <span className="font-mono text-base font-bold tracking-wider text-[#00ff41] text-glow">
-              CIPHER
-            </span>
-            <span className="font-mono text-[9px] uppercase tracking-widest text-[#6fae78]">
-              SJEC · CSE
-            </span>
-          </div>
-        </button>
+        </a>
 
-        {/* Center: Desktop Links */}
-        <nav className="hidden md:flex items-center gap-7">
-          {navLinks.map((link) => {
-            const isActive = currentPage === link.id;
-            return (
-              <button
-                key={link.id}
-                type="button"
-                onClick={() => onNavigate(link.id)}
-                className={`font-mono text-xs font-semibold tracking-widest transition-all duration-200 py-1 ${
-                  isActive
-                    ? 'text-[#00ff41] text-glow border-b-2 border-[#00ff41]'
-                    : 'text-[#c8f7d0]/80 hover:text-[#00ff41]'
-                }`}
+        {/* Desktop Links */}
+        <ul className="hidden items-center gap-8 md:flex">
+          {NAV_ITEMS.map((item) => (
+            <li key={item.href}>
+              <a
+                href={item.href}
+                className="group relative font-mono text-sm uppercase tracking-wider text-muted-foreground transition-colors hover:text-[var(--matrix)]"
                 data-cursor="lens"
               >
-                {link.name}
-              </button>
-            );
-          })}
+                {item.label}
+                <span className="absolute -bottom-1 left-0 h-px w-0 bg-[var(--matrix)] shadow-[0_0_8px_var(--matrix-glow)] transition-all duration-300 group-hover:w-full" />
+              </a>
+            </li>
+          ))}
+        </ul>
 
-          {/* Admin CMS link */}
-          <button
-            type="button"
-            onClick={() => onNavigate('admin')}
-            className={`flex items-center gap-1.5 font-mono text-[11px] font-medium tracking-wider px-2.5 py-1 rounded transition-colors ${
-              currentPage === 'admin'
-                ? 'text-[#00ff41] bg-[#00ff41]/10 border border-[#00ff41]/40'
-                : 'text-[#6fae78] hover:text-[#00ff41]'
-            }`}
-            data-cursor="lens"
-            title="Admin Content & Positions CMS"
-          >
-            <Settings size={13} />
-            <span>ADMIN</span>
-          </button>
-        </nav>
+        {/* Action Button */}
+        <a
+          href="#join"
+          className="hidden rounded-md border border-[var(--matrix)] px-4 py-2 font-mono text-xs uppercase tracking-wider text-[var(--matrix)] transition-colors hover:bg-[rgba(0,255,65,0.1)] md:inline-block"
+          data-cursor="lens"
+        >
+          Join CIPHER
+        </a>
 
-        {/* Right: Clean JOIN CIPHER CTA button */}
-        <div className="hidden md:flex items-center">
-          <button
-            type="button"
-            onClick={onOpenJoin}
-            className="rounded border border-[#00ff41] px-5 py-2 font-mono text-xs font-semibold uppercase tracking-widest text-[#00ff41] transition-all duration-300 hover:bg-[#00ff41] hover:text-[#030503] hover:shadow-[0_0_20px_rgba(0,255,65,0.4)]"
-            data-cursor="lens"
-          >
-            JOIN CIPHER
-          </button>
-        </div>
-
-        {/* Mobile Menu Button */}
+        {/* Mobile Toggle Button */}
         <button
           type="button"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="flex md:hidden text-[#c8f7d0] hover:text-[#00ff41] p-2"
-          aria-label="Toggle navigation menu"
+          className="text-[var(--matrix)] md:hidden p-1"
+          onClick={() => setMobileMenuOpen((prev) => !prev)}
+          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileMenuOpen}
         >
           {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
-      </div>
+      </nav>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer Dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-[#123a17] bg-[#050705]/95 px-6 py-6 backdrop-blur-xl space-y-3">
-          {navLinks.map((link) => (
-            <button
-              key={link.id}
-              type="button"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onNavigate(link.id);
-              }}
-              className={`block w-full text-left font-mono text-sm font-medium tracking-wider ${
-                currentPage === link.id ? 'text-[#00ff41] font-bold' : 'text-[#c8f7d0]'
-              }`}
-            >
-              {link.name}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => {
-              setMobileMenuOpen(false);
-              onNavigate('admin');
-            }}
-            className="flex items-center gap-2 font-mono text-xs text-[#00ff41] w-full text-left pt-2 border-t border-[#123a17]"
-          >
-            <Settings size={14} />
-            <span>ADMIN CMS DASHBOARD</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMobileMenuOpen(false);
-              onOpenJoin();
-            }}
-            className="w-full rounded border border-[#00ff41] bg-[#00ff41]/10 py-2.5 font-mono text-xs uppercase tracking-wider text-[#00ff41]"
-          >
-            JOIN CIPHER
-          </button>
+        <div className="border-t border-[var(--border)] bg-[#050705]/95 backdrop-blur-md md:hidden">
+          <ul className="flex flex-col px-5 py-4">
+            {NAV_ITEMS.map((item) => (
+              <li key={item.href}>
+                <a
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block py-3 font-mono text-sm uppercase tracking-wider text-muted-foreground transition-colors hover:text-[var(--matrix)]"
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </header>

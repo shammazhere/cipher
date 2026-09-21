@@ -1,167 +1,194 @@
 import React, { useState } from 'react';
-import { Calendar, ArrowUpRight, MapPin, Image as ImageIcon, Sparkles } from 'lucide-react';
-import { EventGalleryModal } from '../Modals/EventGalleryModal';
-import { useData } from '../../context/DataContext';
-import { EventItem } from '../../types';
-import { handleImageError } from '../../utils/imageFallback';
+import { motion } from 'framer-motion';
+import { Calendar, ArrowUpRight } from 'lucide-react';
+import { EventGalleryModal, GalleryModalData } from '../Modals/EventGalleryModal';
+import { SectionHeader } from '../UI/SectionHeader';
 
 /**
  * Events & Workshops Section Component
  * 
  * Non-technical explanation:
- * Displays featured flagship events (like the Lumière Gala and Prompt Ops competition).
- * Each card features a high-definition photo banner with hover zoom, filmstrip preview,
- * venue chips, and an interactive "VIEW GALLERY" trigger for the full album.
+ * Section 4 from the reference:
+ * - Highlights 2 flagship events: Lumière — The Gala and PROMPT OPS-2K26.
+ * - Clicking either card opens a rich modal photo gallery with swipeable 3D stack.
+ * - Below is the Activities Archive grid featuring all 17 department workshops and sessions.
  */
 
+const FEATURED_EVENTS: GalleryModalData[] = [
+  {
+    slug: 'LUMIERE_GALA',
+    tag: 'Branch Gala',
+    title: 'Lumière — The Gala',
+    dateStr: '29 October 2025 · Kalam Auditorium',
+    cardDateBadge: '29 OCT 2025',
+    cardSubtitle: 'CSE Branch Entry · Kalam Auditorium',
+    paragraphs: [
+      'The Department of Computer Science and Engineering (CSE) held its branch entry programme, “Lumière – The Gala,” on 29 October 2025 at the Kalam Auditorium. Organised by the Cipher Association, the event welcomed students into the department through a formal gathering centred on the theme “Where Glam Meets Glow.” The venue featured coordinated red, gold and black décor, floral arrangements, illuminated panels and a central Lumière backdrop.',
+      'The programme gave students an opportunity to interact with peers and take part in a shared departmental event beyond academics, highlighting the role of the Cipher Association in organising student-led activities. It concluded as a formal branch entry that marked the students’ transition into the department and reinforced a sense of collective identity.',
+    ],
+    images: [
+      '/lumiere/website_photo_1.webp',
+      '/lumiere/website_photo_2.webp',
+      '/lumiere/website_photo_3.webp',
+      '/lumiere/website_photo_4.webp',
+      '/lumiere/website_photo_5.webp',
+      '/lumiere/website_photo_6.webp',
+      '/lumiere/website_photo_7.webp',
+      '/lumiere/website_photo_8.webp',
+    ],
+  },
+  {
+    slug: 'PROMPT_OPS',
+    tag: 'Competition',
+    title: 'PROMPT OPS-2K26',
+    dateStr: '25 March 2026 · Prompt Engineering Competition',
+    cardDateBadge: '25 MAR 2026',
+    cardSubtitle: 'AgentBlazer Club × Cipher',
+    paragraphs: [
+      'Organized by the AgentBlazer Club and Cipher under the guidance of Ms. Nisha J Roche, Ms. Jaishma K, and HOD Dr. Melwyn D’Souza, this technical competition focused on prompt engineering and AI tools (mapped to PO4, PO5, PO8, PO11).',
+      'Track 1 (1st Year) featured invitation generation, logo recreation, and image recreation rounds, with Chinmayee, Chris Royston Monteiro, and Deeksha Ravi Moger taking top honors.',
+      'Track 2 (2nd Year) tested students in JSON conversion, Python code debugging, and a Gemini AI security prompt extraction challenge, with Harimurali KS, Venus Suhani D’Lima, and Venisha Snehal D’Souza securing top positions.',
+    ],
+    images: [
+      '/promptops/website_photo_1.webp',
+      '/promptops/website_photo_2.webp',
+      '/promptops/website_photo_3.webp',
+      '/promptops/website_photo_4.webp',
+      '/promptops/website_photo_5.webp',
+      '/promptops/website_photo_6.webp',
+      '/promptops/website_photo_7.webp',
+      '/promptops/website_photo_8.webp',
+    ],
+  },
+];
+
+const ARCHIVE_ACTIVITIES = [
+  { title: 'Applied Machine Learning', href: 'https://sjec.ac.in/cipher/activity/applied-machine-learning' },
+  { title: 'Industrial Visit', href: 'https://sjec.ac.in/cipher/activity/industrial-visit-1' },
+  { title: 'LaTeX Tool', href: 'https://sjec.ac.in/cipher/activity/latex-tool' },
+  { title: 'Robotic Process Automation using UiPath', href: 'https://sjec.ac.in/cipher/activity/rpa-uipath' },
+  { title: 'HackTO Future 20', href: 'https://sjec.ac.in/cipher/activity/hackto-future-20' },
+  { title: 'How to Win at the Sport of Programming', href: 'https://sjec.ac.in/cipher/activity/sport-of-programming' },
+  { title: 'Introduction to Google Crowdsource', href: 'https://sjec.ac.in/cipher/activity/google-crowdsource' },
+  { title: 'Educational Session on GitHub', href: 'https://sjec.ac.in/cipher/activity/github-session' },
+  { title: 'Industrial Visit', href: 'https://sjec.ac.in/cipher/activity/industrial-visit-2' },
+  { title: 'UDAAN Mock Interview', href: 'https://sjec.ac.in/cipher/activity/udaan-mock-interview' },
+  { title: 'Freshers Onboarding Programme', href: 'https://sjec.ac.in/cipher/activity/freshers-onboarding' },
+  { title: 'Projects Funded by KSCST', href: 'https://sjec.ac.in/cipher/activity/kscst-projects' },
+  { title: 'Generative AI Tools for Research', href: 'https://sjec.ac.in/cipher/activity/genai-tools-research' },
+  { title: 'Introduction to Blockchain: Solidity Workshop', href: 'https://sjec.ac.in/cipher/activity/blockchain-solidity' },
+  { title: 'Star UML', href: 'https://sjec.ac.in/cipher/activity/star-uml' },
+  { title: 'Generative AI: Custom Solutions using OpenAI', href: 'https://sjec.ac.in/cipher/activity/genai-custom-solutions' },
+  { title: 'React.js and Node.js Workshop', href: 'https://sjec.ac.in/cipher/activity/reactjs-and-nodejs-workshop' },
+];
+
 export const EventsSection: React.FC = () => {
-  const { events } = useData();
-  const [activeEvent, setActiveEvent] = useState<EventItem | null>(null);
+  const [activeModalData, setActiveModalData] = useState<GalleryModalData | null>(null);
 
   return (
-    <section id="events" className="relative border-t border-[#123a17] py-24 md:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
-        {/* Section Header */}
-        <div className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.3em] text-[#00ff41]">
-          <span>// ACTIVITIES</span>
-          <span className="text-[#2c7a3a] hidden sm:inline">&gt;&gt; FLAGSHIP_SESSIONS</span>
-        </div>
+    <section id="events" className="relative border-t border-[var(--border)] py-24">
+      <div className="mx-auto max-w-6xl px-5">
+        {/* Header */}
+        <SectionHeader label="activities" title="Events & Workshops" />
 
-        <div className="mt-4 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-          <div>
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#c8f7d0] text-glow">
-              Events &amp; Workshops
-            </h2>
-            <p className="mt-3 font-mono text-xs sm:text-sm text-[#6fae78] max-w-2xl leading-relaxed">
-              From flagship branch galas to statewide AI prompt battles — explore visual archives and technical debriefs from CIPHER events.
-            </p>
-          </div>
-          <div className="hidden md:flex items-center gap-2 font-mono text-[11px] text-[#00ff41] bg-[#00ff41]/5 border border-[#123a17] px-3.5 py-1.5 rounded-full">
-            <Sparkles size={13} className="animate-pulse" />
-            <span>INTERACTIVE ARCHIVE // CLICK CARD TO EXPAND</span>
-          </div>
-        </div>
-
-        {/* Featured Event Cards Grid with Rich Media */}
-        <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {events.map((event) => {
-            const coverImage = event.images && event.images.length > 0 ? event.images[0] : null;
-            const previewThumbs = event.images ? event.images.slice(1, 4) : [];
-
-            return (
-              <div
-                key={event.id}
-                onClick={() => setActiveEvent(event)}
-                className="group relative flex flex-col overflow-hidden rounded-xl border border-[#123a17] bg-[#080d08]/85 backdrop-blur-md transition-all duration-300 hover:border-[#00ff41] hover:bg-[#0e1613] hover:shadow-[0_0_40px_rgba(0,255,65,0.22)] cursor-pointer"
+        {/* 2 Flagship Cards */}
+        <div className="mt-12 grid gap-5 md:grid-cols-2">
+          {FEATURED_EVENTS.map((event, idx) => (
+            <motion.div
+              key={event.title}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: idx * 0.1 }}
+            >
+              <article
                 data-cursor="lens"
+                role="button"
+                tabIndex={0}
+                onClick={() => setActiveModalData(event)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setActiveModalData(event);
+                  }
+                }}
+                className="group flex h-full flex-col rounded-lg border border-[var(--border)] bg-[var(--card)]/50 p-6 transition-all duration-300 hover:border-[var(--matrix)] hover:box-glow cursor-pointer"
               >
-                {/* Cyber Corner Reticles */}
-                <span className="absolute top-2 left-2 z-20 font-mono text-[10px] text-[#00ff41]/40 select-none group-hover:text-[#00ff41] transition-colors">+</span>
-                <span className="absolute top-2 right-2 z-20 font-mono text-[10px] text-[#00ff41]/40 select-none group-hover:text-[#00ff41] transition-colors">+</span>
-
-                {/* Hero Media Preview Banner */}
-                {coverImage && (
-                  <div className="relative aspect-[16/9] w-full overflow-hidden bg-[#050705] border-b border-[#123a17]">
-                    <img
-                      src={coverImage}
-                      alt={event.title}
-                      loading="lazy"
-                      decoding="async"
-                      onError={handleImageError}
-                      className="h-full w-full object-cover grayscale contrast-125 transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
-                    />
-                    {/* Dark gradient & scanline overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#080d08] via-transparent to-black/40 pointer-events-none" />
-                    
-                    {/* Top Status & Tag Badges */}
-                    <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-10">
-                      <span className="inline-flex items-center gap-1.5 rounded bg-[#050705]/85 border border-[#00ff41]/40 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-[#00ff41] backdrop-blur-sm">
-                        <Calendar size={11} />
-                        {event.tag}
-                      </span>
-                      <span className="inline-flex items-center gap-1 rounded bg-[#050705]/85 border border-[#123a17] px-2.5 py-1 font-mono text-[10px] text-[#c8f7d0] backdrop-blur-sm">
-                        <ImageIcon size={11} className="text-[#00ff41]" />
-                        {event.galleryCount} SHOTS
-                      </span>
-                    </div>
-
-                    {/* Date Pill at bottom-left of photo */}
-                    <div className="absolute bottom-3 left-3 z-10 font-mono text-[11px] text-[#00ff41] bg-[#050705]/90 border border-[#123a17] px-2.5 py-1 rounded">
-                      {event.date}
-                    </div>
-                  </div>
-                )}
-
-                {/* Card Content Body */}
-                <div className="flex flex-1 flex-col justify-between p-6 sm:p-7">
-                  <div>
-                    {/* Title */}
-                    <h3 className="font-display text-2xl sm:text-3xl font-bold text-[#c8f7d0] group-hover:text-[#00ff41] transition-colors">
-                      {event.title}
-                    </h3>
-
-                    {/* Venue & Metadata */}
-                    {event.venue && (
-                      <div className="mt-2.5 flex items-center gap-1.5 font-mono text-xs text-[#6fae78]">
-                        <MapPin size={13} className="text-[#00ff41] shrink-0" />
-                        <span>{event.venue}</span>
-                      </div>
-                    )}
-
-                    {/* Summary */}
-                    <p className="mt-4 font-mono text-xs sm:text-sm leading-relaxed text-[#6fae78]">
-                      {event.cardSummary}
-                    </p>
-
-                    {/* Mini Photo Filmstrip Previews */}
-                    {previewThumbs.length > 0 && (
-                      <div className="mt-5 flex items-center gap-2 pt-4 border-t border-[#123a17]">
-                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#2c7a3a] mr-1 hidden sm:inline">
-                          ROLL:
-                        </span>
-                        {previewThumbs.map((thumb, idx) => (
-                          <div
-                            key={idx}
-                            className="relative h-11 w-16 overflow-hidden rounded border border-[#123a17] bg-[#050705] transition-all group-hover:border-[#00ff41]/50"
-                          >
-                            <img
-                              src={thumb}
-                              alt=""
-                              className="h-full w-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
-                              loading="lazy"
-                              onError={handleImageError}
-                            />
-                          </div>
-                        ))}
-                        <span className="font-mono text-[10px] text-[#6fae78] ml-auto">
-                          +{Number(event.galleryCount) - 4} more
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Card Footer: View Gallery Trigger */}
-                  <div className="mt-6 pt-4 border-t border-[#123a17] flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#00ff41] flex items-center gap-1.5 transition-transform group-hover:translate-x-1">
-                      LAUNCH GALLERY <ArrowUpRight size={15} />
-                    </span>
-                    <span className="font-mono text-[11px] text-[#6fae78] group-hover:text-[#c8f7d0] transition-colors">
-                      CLICK TO INSPECT
-                    </span>
-                  </div>
+                {/* Card Top Strip */}
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-widest text-[var(--matrix)]">
+                    <Calendar size={13} /> {event.tag}
+                  </span>
+                  <span className="rounded border border-[var(--border)] px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    {event.cardDateBadge}
+                  </span>
                 </div>
-              </div>
-            );
-          })}
+
+                {/* Title */}
+                <h3 className="mb-2 font-display text-xl text-foreground transition-colors group-hover:text-[var(--matrix)]">
+                  {event.title}
+                </h3>
+
+                {/* Body description */}
+                <p className="flex-1 font-mono text-sm leading-relaxed text-muted-foreground">
+                  {event.paragraphs[0]}
+                </p>
+
+                {/* Hover trigger hint */}
+                <span className="mt-5 inline-flex items-center gap-1 font-mono text-xs uppercase tracking-widest text-[var(--matrix)] opacity-0 transition-opacity group-hover:opacity-100">
+                  View gallery <ArrowUpRight size={13} />
+                </span>
+              </article>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Activities Archive */}
+        <div className="mt-20">
+          <SectionHeader label="archive" title="Activities" />
+
+          <p className="mt-4 max-w-2xl font-mono text-sm leading-relaxed text-muted-foreground">
+            Hands-on workshops, industrial visits, and technical sessions run by the Cipher
+            Association — spanning AI, blockchain, research tooling, and career prep.
+          </p>
+
+          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {ARCHIVE_ACTIVITIES.map((activity, idx) => (
+              <motion.div
+                key={`${activity.title}-${idx}`}
+                initial={{ opacity: 0, y: 15 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: (idx % 3) * 0.05 }}
+              >
+                <a
+                  href={activity.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-cursor="lens"
+                  className="group flex h-full items-start justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)]/50 p-4 transition-all duration-300 hover:border-[var(--matrix)] hover:box-glow"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="font-mono text-[10px] leading-5 text-[var(--matrix)]">
+                      {String(idx + 1).padStart(2, '0')}
+                    </span>
+                    <h3 className="font-mono text-sm leading-snug text-foreground transition-colors group-hover:text-[var(--matrix)]">
+                      {activity.title}
+                    </h3>
+                  </div>
+                  <ArrowUpRight
+                    size={15}
+                    className="mt-0.5 shrink-0 text-muted-foreground transition-colors group-hover:text-[var(--matrix)]"
+                  />
+                </a>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Full Gallery Modal */}
-      <EventGalleryModal
-        event={activeEvent}
-        onClose={() => setActiveEvent(null)}
-      />
+      {/* Gallery Modal */}
+      <EventGalleryModal data={activeModalData} onClose={() => setActiveModalData(null)} />
     </section>
   );
 };
-

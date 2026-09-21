@@ -6,22 +6,27 @@
   =============================================================================
   CIPHER DESIGN SYSTEM & GLOBAL THEME
   -----------------------------------------------------------------------------
-  This file defines the cybernetic / matrix theme for the CIPHER portal.
-  Colors, glows, scanline effects, and custom typography live here.
+  Exact theme matching the reference video and production application.
   =============================================================================
 */
+
+@font-face {
+  font-family: Matrix;
+  src: url('/fonts/matrix.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   color-scheme: dark;
   --background: #050705;
   --foreground: #c8f7d0;
   --card: #080d08;
-  --card-hover: #0e1613;
   --card-foreground: #c8f7d0;
   --popover: #080d08;
   --popover-foreground: #c8f7d0;
   --primary: #00ff41;
-  --primary-bright: #00ff66;
   --primary-foreground: #030503;
   --secondary: #0d1f0d;
   --secondary-foreground: #b6f0bf;
@@ -31,12 +36,14 @@
   --accent-foreground: #d6ffdd;
   --destructive: #ff5f56;
   --border: #123a17;
-  --border-subtle: rgba(0, 255, 65, 0.18);
-  --border-highlight: rgba(0, 255, 65, 0.6);
+  --input: #123a17;
   --ring: #00ff41;
   --matrix: #00ff41;
   --matrix-dim: #2c7a3a;
   --matrix-glow: rgba(0, 255, 65, 0.55);
+  --font-display: 'Lexend', sans-serif;
+  --font-jetbrains: 'JetBrains Mono', monospace;
+  --radius: 0.4rem;
 }
 
 body {
@@ -48,6 +55,15 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography Helpers */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-matrix {
+  font-family: Matrix, monospace;
 }
 
 /* Lenis Smooth Scroll Foundation */
@@ -67,8 +83,7 @@ html.lenis, html.lenis body {
   overflow: hidden;
 }
 
-
-/* CRT Scanline Overlay: Provides the retro terminal monitor aesthetic */
+/* Scanlines Effect */
 .bg-scanlines {
   background-image: repeating-linear-gradient(
     0deg,
@@ -79,13 +94,7 @@ html.lenis, html.lenis body {
   );
 }
 
-/* Subtle 24px Dot Matrix Grid Texture */
-.bg-dot-matrix {
-  background-image: radial-gradient(rgba(0, 255, 65, 0.12) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-/* Terminal Neon Text Glows */
+/* Glow Shadows */
 .text-glow {
   text-shadow: 0 0 4px var(--matrix-glow), 0 0 12px var(--matrix-glow);
 }
@@ -94,98 +103,73 @@ html.lenis, html.lenis body {
   text-shadow: 0 0 6px var(--matrix-glow), 0 0 18px var(--matrix-glow), 0 0 42px var(--matrix-glow);
 }
 
-/* Card and Container Border Glows */
 .box-glow {
-  box-shadow: 0 0 0 1px rgba(0, 255, 65, 0.25), 0 0 22px -6px var(--matrix-glow);
+  box-shadow: 0 0 0 1px #00ff4140, 0 0 22px -6px var(--matrix-glow);
 }
 
-.box-glow-hover:hover {
-  box-shadow: 0 0 0 1px rgba(0, 255, 65, 0.5), 0 0 34px -4px var(--matrix-glow);
+.box-glow-hover {
+  box-shadow: 0 0 0 1px #00ff4180, 0 0 34px -4px var(--matrix-glow);
 }
 
-/* Blinking Cursor for Terminal Prompts */
-@keyframes terminal-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+/* Blinking Cursor */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
 .cursor-blink {
   display: inline-block;
-  animation: terminal-blink 1s step-end infinite;
+  animation: 1s step-end infinite blink;
 }
 
-/* Infinite Smooth Right-to-Left Loop Marquee */
-@keyframes marquee-rtl {
-  0% {
-    transform: translate3d(0, 0, 0);
+/* Scrollbar Utility */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Custom Cursor Rules */
+@media (hover: hover) and (pointer: fine) {
+  .cipher-custom-cursor,
+  .cipher-custom-cursor * {
+    cursor: none !important;
   }
-  100% {
-    transform: translate3d(-50%, 0, 0);
-  }
 }
 
-.animate-marquee-rtl {
-  display: flex;
-  width: max-content;
-  animation: marquee-rtl 45s linear infinite;
-  will-change: transform;
-}
+/* =============================================================================
+   CURSOR PHOTO TRAIL (CPT) - EXACT REFERENCE SPEC
+   ============================================================================= */
 
-.animate-marquee-rtl:hover,
-.animate-marquee-rtl:focus-within {
-  animation-play-state: paused;
-}
-
-/* Custom Scrollbar for Hacker Theme */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #050705;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #123a17;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #2c7a3a;
-}
-
-/* Custom cursor hidden default when active */
-.cipher-custom-cursor,
-.cipher-custom-cursor * {
-  cursor: none !important;
-}
-
-/* Photo Trail Zone */
 .cpt-zone {
+  pointer-events: none;
+  isolation: isolate;
+  background: transparent;
   position: absolute;
   inset: 0;
   overflow: hidden;
-  pointer-events: auto;
+  container-type: inline-size;
 }
 
 .cpt-photo {
   pointer-events: none;
-  position: absolute;
-  overflow: hidden;
-  border-radius: 6px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7), 0 0 15px rgba(0, 255, 65, 0.2);
-  border: 1px solid rgba(0, 255, 65, 0.3);
   animation: cpt-pop var(--cpt-duration) cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform: rotate(var(--cpt-rot)) scale(0.6);
   will-change: transform, opacity;
-  z-index: 10;
+  z-index: 1;
+  border-radius: 4px;
+  position: absolute;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
 .cpt-photo img {
+  object-fit: cover;
   width: 100%;
   height: 100%;
-  object-fit: cover;
   display: block;
 }
 
@@ -198,7 +182,7 @@ html.lenis, html.lenis body {
     opacity: 1;
     transform: rotate(var(--cpt-rot)) scale(1) translateY(-2px);
   }
-  70% {
+  65% {
     opacity: 0.95;
   }
   100% {
@@ -207,17 +191,197 @@ html.lenis, html.lenis body {
   }
 }
 
-/* =============================================================================
-   ACCESSIBILITY & COMPETITION POLISH
-   ============================================================================= */
+.cpt-label-wrap {
+  z-index: 2;
+  justify-content: center;
+  align-items: center;
+  padding: 0 4%;
+  display: flex;
+  position: absolute;
+  inset: 0;
+}
 
-/* Keyboard Navigation Focus Outline */
+.cpt-label-entrance {
+  opacity: 0;
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: scale(0.88);
+}
+
+.cpt-label-entrance.cpt-label-in {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.cpt-label-float {
+  animation: 6.5s ease-in-out infinite cpt-float;
+}
+
+@keyframes cpt-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.cpt-label-reactive {
+  transform: scale(calc(1 + var(--cpt-boost, 0) * 0.045)) translateX(calc(var(--cpt-boost, 0) * 5px - 2.5px));
+  filter: drop-shadow(0 0 calc(4px + var(--cpt-boost, 0) * 12px) var(--matrix));
+  will-change: transform, filter;
+  transition: transform 0.26s ease-out, filter 0.26s ease-out;
+  display: inline-block;
+}
+
+.cpt-label {
+  font-family: var(--font-jetbrains, monospace);
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  color: #5cffab;
+  mix-blend-mode: screen;
+  -webkit-user-select: none;
+  user-select: none;
+  font-size: max(2rem, min(22cqw, 7rem));
+  font-weight: 800;
+  line-height: 1;
+  animation: 4s ease-in-out infinite cpt-glow-pulse, 3.6s step-end infinite cpt-glitch-shift;
+  display: inline-block;
+  position: relative;
+}
+
+@keyframes cpt-glow-pulse {
+  0%, 100% {
+    text-shadow: 0 0 8px rgba(0, 255, 65, 0.55), 0 0 18px rgba(0, 255, 65, 0.22);
+  }
+  50% {
+    text-shadow: 0 0 13px rgba(0, 255, 65, 0.75), 0 0 26px rgba(0, 255, 65, 0.35);
+  }
+}
+
+@keyframes cpt-glitch-shift {
+  0%, 21%, 25%, 49%, 52%, 78%, 82%, 100% {
+    transform: translate(0);
+  }
+  22% {
+    transform: translate(-4px, 1px);
+  }
+  23% {
+    transform: translate(4px, -1px);
+  }
+  24% {
+    transform: translate(-2px);
+  }
+  50% {
+    transform: translate(3px, -1px);
+  }
+  51% {
+    transform: translate(-3px, 1px);
+  }
+  79% {
+    transform: translate(-5px);
+  }
+  80% {
+    transform: translate(3px, 1px);
+  }
+  81% {
+    transform: translate(-1px);
+  }
+}
+
+.cpt-label:before,
+.cpt-label:after {
+  content: attr(data-text);
+  pointer-events: none;
+  opacity: 0;
+  position: absolute;
+  inset: 0;
+}
+
+.cpt-label:before {
+  color: #7ffbe0;
+  animation: 3.6s step-end infinite cpt-glitch-1;
+}
+
+.cpt-label:after {
+  color: #00ff41;
+  animation: 3.6s step-end infinite cpt-glitch-2;
+}
+
+@keyframes cpt-glitch-1 {
+  0%, 21%, 25%, 49%, 53%, 78%, 83%, 100% {
+    opacity: 0;
+    clip-path: inset(0 0 100%);
+    transform: translate(0);
+  }
+  22% {
+    opacity: 0.75;
+    clip-path: inset(6% 0 55%);
+    transform: translate(-4px);
+  }
+  50% {
+    opacity: 0.75;
+    clip-path: inset(45% 0 20%);
+    transform: translate(4px);
+  }
+  80% {
+    opacity: 0.75;
+    clip-path: inset(20% 0 40%);
+    transform: translate(-2px, 1px);
+  }
+}
+
+@keyframes cpt-glitch-2 {
+  0%, 23%, 27%, 51%, 55%, 79%, 84%, 100% {
+    opacity: 0;
+    clip-path: inset(100% 0 0);
+    transform: translate(0);
+  }
+  24% {
+    opacity: 0.75;
+    clip-path: inset(60% 0 10%);
+    transform: translate(3px);
+  }
+  52% {
+    opacity: 0.75;
+    clip-path: inset(15% 0 50%);
+    transform: translate(-3px);
+  }
+  81% {
+    opacity: 0.75;
+    clip-path: inset(35% 0 30%);
+    transform: translate(2px, -1px);
+  }
+}
+
+.cpt-label-shimmer {
+  color: transparent !important;
+  mix-blend-mode: overlay;
+  opacity: 0.7;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.85) 50%, transparent 65%) -120% 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: 5.5s ease-in-out infinite cpt-shimmer-sweep;
+  position: absolute;
+  inset: 0;
+}
+
+@keyframes cpt-shimmer-sweep {
+  0%, 60% {
+    background-position: -120% 0;
+  }
+  to {
+    background-position: 120% 0;
+  }
+}
+
+/* Accessibility Focus Outline */
 :focus-visible {
   outline: 2px solid #00ff41 !important;
   outline-offset: 3px !important;
 }
 
-/* WCAG Reduced Motion Accommodation */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -227,26 +391,20 @@ html.lenis, html.lenis body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .cpt-zone {
-    display: none !important;
+  .cpt-label-float {
+    animation: none;
+  }
+  .cpt-label-reactive {
+    filter: drop-shadow(0 0 6px var(--matrix));
+    transition: none;
+    transform: none;
+  }
+  .cpt-label {
+    text-shadow: 0 0 10px rgba(0, 255, 65, 0.55);
+    animation: none;
+  }
+  .cpt-label:before,
+  .cpt-label:after {
+    display: none;
   }
 }
-
-/* Print Styles for Technical Dossier / Evaluation Export */
-@media print {
-  body {
-    background: #ffffff !important;
-    color: #000000 !important;
-  }
-  .cpt-zone,
-  canvas,
-  .cipher-custom-cursor,
-  button,
-  nav {
-    display: none !important;
-  }
-  main {
-    margin-top: 0 !important;
-  }
-}
-

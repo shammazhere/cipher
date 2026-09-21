@@ -1,180 +1,289 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Calendar, MapPin } from 'lucide-react';
-import { EventItem } from '../../types';
-import { handleImageError } from '../../utils/imageFallback';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
+import { X, ArrowLeft, ArrowRight } from 'lucide-react';
 
-/**
- * Event Gallery Modal Component
- * 
- * Non-technical explanation:
- * When a visitor clicks "VIEW GALLERY" on an event card, this full modal opens:
- * - Left side shows the comprehensive writeup/report about the event.
- * - Right side displays the photo album with left/right arrows and slide counters.
- */
+export interface GalleryModalData {
+  slug: string;
+  tag: string;
+  title: string;
+  dateStr: string;
+  cardDateBadge: string;
+  cardSubtitle: string;
+  paragraphs: string[];
+  images: string[];
+}
 
 interface EventGalleryModalProps {
-  event: EventItem | null;
+  data?: GalleryModalData | null;
+  event?: any;
   onClose: () => void;
 }
 
-export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ event, onClose }) => {
-  const [photoIndex, setPhotoIndex] = useState(0);
+export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, event, onClose }) => {
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
 
-  if (!event) return null;
+  const activeData: GalleryModalData | null = data || (event ? {
+    slug: event.tag ? event.tag.toUpperCase().replace(/\s+/g, '_') : 'EVENT',
+    tag: event.tag || 'Activity',
+    title: event.title || '',
+    dateStr: `${event.fullDate || event.date} · ${event.venue || 'Kalam Auditorium'}`,
+    cardDateBadge: event.date || '',
+    cardSubtitle: event.venue || 'CSE Department',
+    paragraphs: event.detailedReport || [event.desc || ''],
+    images: event.images || [],
+  } : null);
 
-  const images = event.images || [];
+  const images = activeData?.images || [];
   const total = images.length;
 
-  const handlePrev = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setPhotoIndex((prev) => (prev > 0 ? prev - 1 : total - 1));
-  };
+  const handleNext = useCallback(() => {
+    if (!total) return;
+    setCurrentIndex((prev) => (prev + 1) % total);
+  }, [total]);
 
-  const handleNext = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setPhotoIndex((prev) => (prev < total - 1 ? prev + 1 : 0));
-  };
+  const handlePrev = useCallback(() => {
+    if (!total) return;
+    setCurrentIndex((prev) => (prev - 1 + total) % total);
+  }, [total]);
 
-  const currentCountText = `${String(photoIndex + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
+  useEffect(() => {
+    if (!activeData) return;
+    document.body.style.overflow = 'hidden';
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowRight') handleNext();
+      if (e.key === 'ArrowLeft') handlePrev();
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [activeData, onClose, handleNext, handlePrev]);
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [activeData]);
+
+  if (!activeData) return null;
+
+  // Next 2 cards in line for 3D stack under the active card
+  const upcoming = [(currentIndex + 1) % total, (currentIndex + 2) % total];
 
   return (
-    <AnimatePresence>
-      <div
-        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 sm:p-6 lg:p-10 backdrop-blur-md overflow-y-auto"
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${activeData.title} photo archive`}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+    >
+      {/* Backdrop */}
+      <motion.div
+        className="absolute inset-0 bg-black/85 backdrop-blur-sm"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         onClick={onClose}
+      />
+
+      {/* Main Container */}
+      <motion.div
+        className="relative z-10 grid max-h-[90vh] w-full max-w-4xl gap-6 overflow-y-auto rounded-lg border border-[var(--matrix)]/40 bg-[var(--background)]/95 p-6 md:grid-cols-2 md:p-8"
+        initial={{ opacity: 0, y: 24, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 26 }}
       >
-        <motion.div
-          className="relative my-auto w-full max-w-5xl rounded-2xl border border-[#00ff41]/40 bg-[#080d08] p-6 sm:p-8 lg:p-10 shadow-[0_0_60px_rgba(0,0,0,0.95)]"
-          initial={{ opacity: 0, scale: 0.94, y: 25 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.94, y: 25 }}
-          transition={{ duration: 0.25 }}
-          onClick={(e) => e.stopPropagation()}
+        {/* Close Button */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          data-cursor="lens"
+          className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded border border-[var(--border)] text-muted-foreground transition-colors hover:border-[var(--matrix)] hover:text-[var(--matrix)]"
         >
-          {/* Top Right Close Button */}
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute top-6 right-6 z-20 flex h-10 w-10 items-center justify-center rounded-lg border border-[#123a17] bg-[#050705] text-[#6fae78] transition-all hover:border-[#00ff41] hover:text-[#00ff41]"
-            aria-label="Close modal"
-          >
-            <X size={20} />
-          </button>
+          <X size={16} />
+        </button>
 
-          {/* Modal Grid: Left Report / Right Gallery */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-            {/* Left Column: Event Report */}
-            <div className="lg:col-span-6 space-y-6">
-              <div>
-                <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.25em] text-[#00ff41]">
-                  <span>CIPHER // ACTIVITIES</span>
-                </div>
+        {/* Left Column: Event Story Narrative */}
+        <div className="flex flex-col">
+          <span className="font-mono text-xs uppercase tracking-widest text-[var(--matrix)]">
+            CIPHER // ACTIVITIES
+          </span>
+          <h3 className="mt-2 font-display text-2xl text-foreground md:text-3xl">
+            {activeData.title}
+          </h3>
+          <span className="mt-1 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            {activeData.dateStr}
+          </span>
+          <div className="mt-4 space-y-3 font-mono text-sm leading-relaxed text-muted-foreground">
+            {activeData.paragraphs.map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+          </div>
+        </div>
 
-                <h3 className="mt-3 font-display text-2xl sm:text-3xl lg:text-4xl font-bold text-[#c8f7d0] text-glow">
-                  {event.title}
-                </h3>
+        {/* Right Column: Interactive Photo Album Stack */}
+        <div className="flex flex-col items-center justify-center">
+          <div className="relative aspect-[3/4] w-full max-w-[320px]">
+            {/* Stacked Cards Underneath */}
+            {upcoming
+              .slice()
+              .reverse()
+              .map((imgIdx, idx) => {
+                const depth = upcoming.length - idx;
+                return (
+                  <div
+                    key={`stack-${imgIdx}-${depth}`}
+                    className="absolute inset-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--card)]"
+                    style={{
+                      transform: `translateY(${10 * depth}px) scale(${1 - 0.05 * depth})`,
+                      opacity: 1 - 0.25 * depth,
+                    }}
+                  >
+                    <img
+                      src={images[imgIdx]}
+                      alt=""
+                      className="h-full w-full object-cover opacity-70"
+                    />
+                    <div className="absolute inset-0 bg-black/40" />
+                  </div>
+                );
+              })}
 
-                <div className="mt-3 flex flex-wrap items-center gap-4 font-mono text-xs text-[#6fae78]">
-                  <span className="flex items-center gap-1.5">
-                    <Calendar size={13} className="text-[#00ff41]" />
-                    {event.fullDate || event.date}
-                  </span>
-                  {event.venue && (
-                    <span className="flex items-center gap-1.5">
-                      <MapPin size={13} className="text-[#00ff41]" />
-                      {event.venue}
-                    </span>
-                  )}
-                </div>
-              </div>
+            {/* Active Swipeable Front Card */}
+            <SwipeCard
+              key={currentIndex}
+              photo={images[currentIndex]}
+              position={currentIndex}
+              total={total}
+              slug={activeData.slug}
+              dateBadge={activeData.cardDateBadge}
+              title={activeData.title}
+              subtitle={activeData.cardSubtitle}
+              onSwiped={handleNext}
+            />
+          </div>
 
-              {/* Multi-paragraph detailed report */}
-              <div className="space-y-4 font-mono text-xs sm:text-sm leading-relaxed text-[#c8f7d0]/85 border-t border-[#123a17] pt-6">
-                {event.detailedReport.map((para, idx) => (
-                  <p key={idx}>{para}</p>
-                ))}
-              </div>
-            </div>
+          {/* Navigation Controls & Pagination */}
+          <div className="mt-5 flex w-full max-w-[320px] items-center justify-between">
+            {/* Left Button */}
+            <button
+              type="button"
+              onClick={handlePrev}
+              data-cursor="lens"
+              aria-label="Previous photo"
+              className="flex h-9 w-9 items-center justify-center rounded border border-[var(--border)] text-muted-foreground transition-colors hover:border-[var(--matrix)] hover:text-[var(--matrix)]"
+            >
+              <ArrowLeft size={16} />
+            </button>
 
-            {/* Right Column: Interactive Photo Album Preview */}
-            <div className="lg:col-span-6 flex flex-col items-center">
-              {/* Photo Display Card with Neon Border */}
-              <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl border border-[#00ff41]/60 bg-[#050705] shadow-[0_0_25px_rgba(0,255,65,0.25)]">
-                {/* Photo Top Badge */}
-                <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between font-mono text-[11px] text-[#00ff41] bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded border border-[#123a17]">
-                  <span className="uppercase tracking-wider">{event.id.replace('-', '_')}</span>
-                  <span>{currentCountText}</span>
-                </div>
-
-                {/* Active Image with transition */}
-                <img
-                  src={images[photoIndex]}
-                  alt={`${event.title} snapshot ${photoIndex + 1}`}
-                  className="h-full w-full object-cover transition-opacity duration-300"
-                  onError={handleImageError}
-                />
-
-                {/* Photo Bottom Caption */}
-                <div className="absolute bottom-3 left-3 z-10 bg-black/70 backdrop-blur-sm px-3 py-1 rounded border border-[#123a17]">
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-[#00ff41]">
-                    {event.date}
-                  </span>
-                </div>
-              </div>
-
-              {/* Album Controls Below Image */}
-              <div className="mt-6 flex w-full items-center justify-between px-2">
-                <button
-                  type="button"
-                  onClick={handlePrev}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#123a17] bg-[#050705] text-[#6fae78] transition-colors hover:border-[#00ff41] hover:text-[#00ff41]"
-                  aria-label="Previous photo"
-                  data-cursor="lens"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-
-                <div className="flex flex-col items-center text-center">
-                  <span className="font-mono text-sm font-bold text-[#00ff41]">
-                    {currentCountText}
-                  </span>
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-[#2c7a3a]">
-                    SWIPE TO EXPLORE &rarr;
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#123a17] bg-[#050705] text-[#6fae78] transition-colors hover:border-[#00ff41] hover:text-[#00ff41]"
-                  aria-label="Next photo"
-                  data-cursor="lens"
-                >
-                  <ChevronRight size={18} />
-                </button>
-              </div>
-
-              {/* Dot Indicators */}
-              <div className="mt-4 flex items-center gap-1.5">
-                {images.map((_, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setPhotoIndex(idx)}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      idx === photoIndex
-                        ? 'w-6 bg-[#00ff41]'
-                        : 'w-1.5 bg-[#123a17] hover:bg-[#2c7a3a]'
+            {/* Middle Dots & Info */}
+            <div className="flex flex-col items-center gap-1.5">
+              <span className="font-mono text-xs text-[var(--matrix)]">
+                {String(currentIndex + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
+              </span>
+              <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/80">
+                SWIPE TO EXPLORE &rarr;
+              </span>
+              <div className="flex items-center gap-1 mt-0.5">
+                {images.map((_, dotIdx) => (
+                  <span
+                    key={dotIdx}
+                    className={`h-1 rounded-full transition-all duration-300 ${
+                      dotIdx === currentIndex
+                        ? 'w-4 bg-[var(--matrix)]'
+                        : 'w-1 bg-[var(--border)]'
                     }`}
-                    aria-label={`Go to slide ${idx + 1}`}
                   />
                 ))}
               </div>
             </div>
+
+            {/* Right Button */}
+            <button
+              type="button"
+              onClick={handleNext}
+              data-cursor="lens"
+              aria-label="Next photo"
+              className="flex h-9 w-9 items-center justify-center rounded border border-[var(--border)] text-muted-foreground transition-colors hover:border-[var(--matrix)] hover:text-[var(--matrix)]"
+            >
+              <ArrowRight size={16} />
+            </button>
           </div>
-        </motion.div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+interface SwipeCardProps {
+  photo: string;
+  position: number;
+  total: number;
+  slug: string;
+  dateBadge: string;
+  title: string;
+  subtitle: string;
+  onSwiped: () => void;
+}
+
+const SwipeCard: React.FC<SwipeCardProps> = ({
+  photo,
+  position,
+  total,
+  slug,
+  dateBadge,
+  title,
+  subtitle,
+  onSwiped,
+}) => {
+  const x = useMotionValue(0);
+  const rotate = useTransform(x, [-240, 0, 240], [-16, 0, 16]);
+  const opacity = useTransform(x, [-320, -160, 0, 160, 320], [0, 1, 1, 1, 0]);
+
+  const handleDragEnd = (_: any, info: { offset: { x: number } }) => {
+    if (Math.abs(info.offset.x) > 80) {
+      const dir = info.offset.x > 0 ? 1 : -1;
+      animate(x, dir * 450, {
+        type: 'spring',
+        stiffness: 320,
+        damping: 34,
+        onComplete: onSwiped,
+      });
+    } else {
+      animate(x, 0, { type: 'spring', stiffness: 400, damping: 30 });
+    }
+  };
+
+  return (
+    <motion.div
+      style={{ x, rotate, opacity }}
+      drag="x"
+      dragConstraints={{ left: 0, right: 0 }}
+      onDragEnd={handleDragEnd}
+      data-cursor="lens"
+      className="absolute inset-0 cursor-grab active:cursor-grabbing overflow-hidden rounded-lg border border-[var(--matrix)] bg-[var(--card)] box-glow"
+    >
+      {/* Top Header Strip inside Card */}
+      <div className="absolute top-0 inset-x-0 z-10 flex items-center justify-between px-3 py-2 bg-gradient-to-b from-[#050705]/90 to-transparent font-mono text-[10px] uppercase text-[var(--matrix)]">
+        <span>{slug}</span>
+        <span>
+          {String(position + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
+        </span>
       </div>
-    </AnimatePresence>
+
+      {/* Main Image */}
+      <img src={photo} alt={title} className="h-full w-full object-cover" draggable={false} />
+
+      {/* Bottom Info Gradient */}
+      <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-[#050705] via-[#050705]/80 to-transparent p-4">
+        <span className="inline-block rounded border border-[var(--matrix)]/50 bg-[#050705]/90 px-2 py-0.5 font-mono text-[9px] uppercase text-[var(--matrix)] mb-2">
+          {dateBadge}
+        </span>
+        <h4 className="font-display text-lg leading-tight text-foreground">{title}</h4>
+        <p className="mt-0.5 font-mono text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+    </motion.div>
   );
 };

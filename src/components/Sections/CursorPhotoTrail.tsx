@@ -1,17 +1,28 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useData } from '../../context/DataContext';
-import { handleImageError } from '../../utils/imageFallback';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 
 /**
  * Cursor Photo Trail Component
  * 
  * Non-technical explanation:
- * Interactive gallery canvas on the About section.
- * As the user glides their mouse across "CIPHER", event snapshots emerge smoothly
- * along the cursor's path with velocity-aware pacing and soft fading.
+ * The interactive media showcase from the About section:
+ * - Displays a floating 3D glitching "CIPHER" headline.
+ * - When moving the cursor around this zone, photographic snapshots dynamically
+ *   spawn, rotate slightly, and pop onto the screen, fading away smoothly.
+ * - Cursor velocity dynamically boosts the 3D glow of the CIPHER label.
  */
 
-interface TrailPhotoItem {
+const DEFAULT_TRAIL_IMAGES = [
+  '/images/trail/1.webp',
+  '/images/trail/2.webp',
+  '/images/trail/3.webp',
+  '/images/trail/4.webp',
+  '/images/trail/5.webp',
+  '/images/trail/6.webp',
+  '/images/trail/7.webp',
+  '/images/trail/8.webp',
+];
+
+interface PhotoItem {
   id: number;
   x: number;
   y: number;
@@ -22,109 +33,17 @@ interface TrailPhotoItem {
   img: string;
 }
 
-let photoIdCounter = 0;
+let photoCounter = 0;
 
-export const CursorPhotoTrail: React.FC = () => {
-  const { siteConfig } = useData();
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [photos, setPhotos] = useState<TrailPhotoItem[]>([]);
-  const lastSpawnTime = useRef(0);
-  const lastSpawnPos = useRef<{ x: number; y: number } | null>(null);
+const boostRatio = (speed: number) => Math.min(speed / 3.2, 1);
 
-  const images = siteConfig.trailImages || [
-    '/images/trail/1.webp',
-    '/images/trail/2.webp',
-    '/images/trail/3.webp',
-    '/images/trail/4.webp',
-  ];
-
-  // Remove photo once animation completes
-  const removePhoto = useCallback((id: number) => {
-    setPhotos((prev) => prev.filter((p) => p.id !== id));
-  }, []);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const rect = container.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const now = performance.now();
-
-    // Ensure user has moved at least 32px from the last spawn to create a true path trail
-    if (lastSpawnPos.current) {
-      const dist = Math.hypot(x - lastSpawnPos.current.x, y - lastSpawnPos.current.y);
-      if (dist < 32) return;
-    }
-
-    // Cooldown throttle
-    if (now - lastSpawnTime.current < 90) return;
-
-    lastSpawnTime.current = now;
-    lastSpawnPos.current = { x, y };
-
-    // Sizing and trajectory calculation
-    const baseW = Math.min(Math.max(rect.width * 0.32, 130), 240);
-    const baseH = baseW * 0.68;
-    const rot = (Math.random() - 0.5) * 12;
-    const duration = 1900 + Math.random() * 500;
-    const randomImg = images[Math.floor(Math.random() * images.length)];
-
-    const newPhoto: TrailPhotoItem = {
-      id: photoIdCounter++,
-      x: x - baseW / 2,
-      y: y - baseH / 2,
-      width: baseW,
-      height: baseH,
-      rotation: rot,
-      duration,
-      img: randomImg,
-    };
-
-    // Keep max 5 active trail items for performance and clarity
-    setPhotos((prev) => [...(prev.length >= 5 ? prev.slice(prev.length - 4) : prev), newPhoto]);
-  };
-
-  return (
-    <div
-      ref={containerRef}
-      onMouseMove={handleMouseMove}
-      className="relative flex min-h-[380px] sm:min-h-[460px] w-full items-center justify-center overflow-hidden rounded-xl border border-[#123a17] bg-[#050705]/80 p-6 shadow-2xl select-none"
-      data-cursor="lens"
-    >
-      {/* Floating spawned photos */}
-      {photos.map((photo) => (
-        <PhotoCard key={photo.id} photo={photo} onDone={removePhoto} />
-      ))}
-
-      {/* Center Giant Glowing CIPHER Headline */}
-      <div className="pointer-events-none relative z-20 flex flex-col items-center justify-center select-none text-center">
-        <span className="font-mono text-xs font-semibold uppercase tracking-[0.4em] text-[#00ff41] mb-2 opacity-80">
-          COMMUNITY // GALLERY
-        </span>
-        <span className="font-mono text-6xl sm:text-7xl md:text-8xl font-black tracking-tight text-[#00ff41] text-glow-strong">
-          CIPHER
-        </span>
-        <span className="mt-3 font-mono text-[11px] uppercase tracking-widest text-[#6fae78] opacity-70">
-          [ GLIDE MOUSE TO REVEAL EVENT TRAIL ]
-        </span>
-      </div>
-
-      {/* Decorative corner target reticles */}
-      <div className="pointer-events-none absolute top-3 left-3 h-3 w-3 border-t border-l border-[#00ff41]/60" />
-      <div className="pointer-events-none absolute top-3 right-3 h-3 w-3 border-t border-r border-[#00ff41]/60" />
-      <div className="pointer-events-none absolute bottom-3 left-3 h-3 w-3 border-b border-l border-[#00ff41]/60" />
-      <div className="pointer-events-none absolute bottom-3 right-3 h-3 w-3 border-b border-r border-[#00ff41]/60" />
-    </div>
-  );
-};
-
-// Individual floating trail photo with cleanup timer
-const PhotoCard: React.FC<{
-  photo: TrailPhotoItem;
+const TrailPhoto = memo(function TrailPhoto({
+  photo,
+  onDone,
+}: {
+  photo: PhotoItem;
   onDone: (id: number) => void;
-}> = ({ photo, onDone }) => {
+}) {
   useEffect(() => {
     const timer = setTimeout(() => onDone(photo.id), photo.duration);
     return () => clearTimeout(timer);
@@ -133,17 +52,234 @@ const PhotoCard: React.FC<{
   return (
     <div
       className="cpt-photo"
-      style={{
-        left: photo.x,
-        top: photo.y,
-        width: photo.width,
-        height: photo.height,
-        // @ts-expect-error CSS variable custom property
-        '--cpt-rot': `${photo.rotation}deg`,
-        '--cpt-duration': `${photo.duration}ms`,
+      style={
+        {
+          left: photo.x,
+          top: photo.y,
+          width: photo.width,
+          height: photo.height,
+          '--cpt-rot': `${photo.rotation}deg`,
+          '--cpt-duration': `${photo.duration}ms`,
+        } as React.CSSProperties
+      }
+    >
+      <img src={photo.img} alt="" draggable={false} loading="eager" />
+    </div>
+  );
+});
+
+interface CursorPhotoTrailProps {
+  images?: string[];
+  label?: string;
+  className?: string;
+}
+
+export const CursorPhotoTrail: React.FC<CursorPhotoTrailProps> = ({
+  images = DEFAULT_TRAIL_IMAGES,
+  label = 'CIPHER',
+  className = '',
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const reactiveLabelRef = useRef<HTMLSpanElement>(null);
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [isInView, setIsInView] = useState<boolean>(false);
+
+  const prevMouse = useRef<{ x: number; y: number; t: number } | null>(null);
+  const lastSpawnTime = useRef<number>(0);
+  const isRafQueued = useRef<boolean>(false);
+  const latestMouse = useRef<{ x: number; y: number } | null>(null);
+  const isTracking = useRef<boolean>(false);
+
+  const handlePhotoDone = useCallback((id: number) => {
+    setPhotos((prev) => (prev.length ? prev.filter((p) => p.id !== id) : prev));
+  }, []);
+
+  const spawnPhoto = useCallback(
+    (clientX: number, clientY: number, speed: number = 0.5) => {
+      const el = containerRef.current;
+      if (!el || !images.length) return;
+      const rect = el.getBoundingClientRect();
+      const boost = boostRatio(speed);
+      reactiveLabelRef.current?.style.setProperty('--cpt-boost', boost.toFixed(3));
+
+      const cardWidth = Math.min(Math.max(rect.width * (0.32 + 0.2 * boost), 90), 420);
+      const cardHeight = 0.68 * cardWidth;
+      const localX = clientX - rect.left;
+      const localY = clientY - rect.top;
+
+      const newPhoto: PhotoItem = {
+        id: photoCounter++,
+        x: localX - cardWidth / 2 + (Math.random() - 0.5) * 10,
+        y: localY - cardHeight / 2 + (Math.random() - 0.5) * 10,
+        width: cardWidth,
+        height: cardHeight,
+        rotation: (Math.random() - 0.5) * (5 + 7 * boost),
+        duration: 2200 + 800 * Math.random(),
+        img: images[Math.floor(Math.random() * images.length)],
+      };
+
+      setPhotos((prevList) => [
+        ...(prevList.length >= 6 ? prevList.slice(prevList.length - 5) : prevList),
+        newPhoto,
+      ]);
+    },
+    [images]
+  );
+
+  // Intersection Observer to enable/disable when in viewport
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsInView(entry.isIntersecting),
+      { threshold: 0.15 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Mouse & Touch trail physics
+  useEffect(() => {
+    const el = containerRef.current;
+    if (
+      !el ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      !images.length ||
+      !isInView
+    ) {
+      return;
+    }
+
+    const processFrame = () => {
+      isRafQueued.current = false;
+      const m = latestMouse.current;
+      if (!m) return;
+
+      const rect = el.getBoundingClientRect();
+      if (!(m.x >= rect.left && m.x <= rect.right && m.y >= rect.top && m.y <= rect.bottom)) {
+        isTracking.current = false;
+        prevMouse.current = null;
+        reactiveLabelRef.current?.style.setProperty('--cpt-boost', '0');
+        return;
+      }
+
+      const now = performance.now();
+      const prev = isTracking.current ? prevMouse.current : null;
+      isTracking.current = true;
+
+      let speed = 0;
+      if (prev) {
+        const dt = Math.max(now - prev.t, 1);
+        speed = Math.hypot(m.x - prev.x, m.y - prev.y) / dt;
+      }
+
+      prevMouse.current = { x: m.x, y: m.y, t: now };
+      const boost = boostRatio(speed);
+      reactiveLabelRef.current?.style.setProperty('--cpt-boost', boost.toFixed(3));
+
+      if (speed < 0.05) return;
+
+      const spawnCooldown = 240 - 180 * boost;
+      if (now - lastSpawnTime.current < spawnCooldown) return;
+      lastSpawnTime.current = now;
+
+      spawnPhoto(m.x, m.y, speed);
+    };
+
+    const handlePointerMove = (clientX: number, clientY: number) => {
+      latestMouse.current = { x: clientX, y: clientY };
+      if (!isRafQueued.current) {
+        isRafQueued.current = true;
+        requestAnimationFrame(processFrame);
+      }
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      handlePointerMove(e.clientX, e.clientY);
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const t = e.touches[0];
+        const rect = el.getBoundingClientRect();
+        if (
+          t.clientX >= rect.left &&
+          t.clientX <= rect.right &&
+          t.clientY >= rect.top &&
+          t.clientY <= rect.bottom
+        ) {
+          spawnPhoto(t.clientX, t.clientY, 0.7);
+          lastSpawnTime.current = performance.now();
+        }
+      }
+    };
+
+    // Ambient automatic photo popping on mobile/touch so users see the photos without having to guess
+    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+    let ambientTimer: ReturnType<typeof setInterval> | null = null;
+    if (isTouchDevice) {
+      const rect = el.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2 + (Math.random() - 0.5) * (rect.width * 0.4);
+      const cy = rect.top + rect.height / 2 + (Math.random() - 0.5) * (rect.height * 0.3);
+      spawnPhoto(cx, cy, 0.4);
+
+      ambientTimer = setInterval(() => {
+        const r = el.getBoundingClientRect();
+        const rx = r.left + r.width / 2 + (Math.random() - 0.5) * (r.width * 0.5);
+        const ry = r.top + r.height / 2 + (Math.random() - 0.5) * (r.height * 0.4);
+        spawnPhoto(rx, ry, 0.35);
+      }, 2500);
+    }
+
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchstart', onTouchStart);
+      if (ambientTimer) clearInterval(ambientTimer);
+    };
+  }, [images, isInView, spawnPhoto]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`cpt-zone cursor-pointer select-none ${className}`}
+      style={{ touchAction: 'pan-y' }}
+      onClick={(e) => {
+        spawnPhoto(e.clientX, e.clientY, 0.8);
       }}
     >
-      <img src={photo.img} alt="CIPHER Event Snapshot" draggable={false} loading="eager" onError={handleImageError} />
+      {/* Spawning trailing photo cards */}
+      {photos.map((p) => (
+        <TrailPhoto key={p.id} photo={p} onDone={handlePhotoDone} />
+      ))}
+
+      {/* Centered Floating 3D "CIPHER" Label with shimmer sweep */}
+      {label && (
+        <div aria-hidden="true" className="cpt-label-wrap">
+          <div className={`cpt-label-entrance ${isInView ? 'cpt-label-in' : ''}`}>
+            <div className="cpt-label-float">
+              <span ref={reactiveLabelRef} className="cpt-label-reactive">
+                <span data-text={label} className="cpt-label">
+                  {label}
+                  <span aria-hidden="true" className="cpt-label-shimmer">
+                    {label}
+                  </span>
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

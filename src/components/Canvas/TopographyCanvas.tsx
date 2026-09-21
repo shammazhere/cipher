@@ -1,38 +1,124 @@
 import React, { useEffect, useRef } from 'react';
-import { SimplexNoise } from '../../utils/simplexNoise';
-import { useInViewAnimation } from '../../hooks/useInViewAnimation';
 
 /**
- * Topography Canvas Component
+ * Topography Canvas Component (WaveCanvas)
  * 
  * Non-technical explanation:
  * Renders the flowing 60 FPS topological wireframe lines seen behind the
- * CIPHER sections. It looks like a high-tech topographic radar map.
- * Optimized with useInViewAnimation to automatically pause when offscreen
- * or when the user switches tabs to conserve CPU and GPU power.
+ * CIPHER portal. Uses a vertical Perlin noise vector field to create
+ * organic, undulating neon green contours running from top to bottom.
  */
 
 interface TopographyCanvasProps {
-  strokeColor?: string;
+  lineColor?: string;
+  backgroundColor?: string;
+  waveSpeedX?: number;
+  waveSpeedY?: number;
+  waveAmpX?: number;
+  waveAmpY?: number;
+  xGap?: number;
+  yGap?: number;
   className?: string;
-  speed?: number;
-  lineSpacing?: number;
+  style?: React.CSSProperties;
+}
+
+class Vec3 {
+  x: number;
+  y: number;
+  z: number;
+  constructor(x: number, y: number, z: number) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+  }
+  dot2(x: number, y: number) {
+    return this.x * x + this.y * y;
+  }
+}
+
+class ClassicalPerlinNoise {
+  grad3: Vec3[];
+  p: number[];
+  perm: number[];
+  gradP: Vec3[];
+
+  constructor(seed = 0) {
+    this.grad3 = [
+      new Vec3(1, 1, 0), new Vec3(-1, 1, 0), new Vec3(1, -1, 0), new Vec3(-1, -1, 0),
+      new Vec3(1, 0, 1), new Vec3(-1, 0, 1), new Vec3(1, 0, -1), new Vec3(-1, 0, -1),
+      new Vec3(0, 1, 1), new Vec3(0, -1, 1), new Vec3(0, 1, -1), new Vec3(0, -1, -1),
+    ];
+    this.p = [
+      151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,190,
+      6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,
+      171,168,68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,
+      55,46,245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,200,196,135,130,116,
+      188,159,86,164,100,109,198,173,186,3,64,52,217,226,250,124,123,5,202,38,147,118,126,255,82,85,212,207,
+      206,59,227,47,16,58,17,182,189,28,42,223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,
+      43,172,9,129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,228,251,34,242,193,238,
+      210,144,12,191,179,162,241,81,51,145,235,249,14,239,107,49,192,214,31,181,199,106,157,184,84,204,176,
+      115,121,50,45,127,4,150,254,138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180
+    ];
+    this.perm = new Array(512);
+    this.gradP = new Array(512);
+    this.seed(seed);
+  }
+
+  seed(s: number) {
+    if (s > 0 && s < 1) s *= 65536;
+    s = Math.floor(s);
+    if (s < 256) s |= s << 8;
+    for (let i = 0; i < 256; i++) {
+      const val = 1 & i ? this.p[i] ^ (255 & s) : this.p[i] ^ ((s >> 8) & 255);
+      this.perm[i] = this.perm[i + 256] = val;
+      this.gradP[i] = this.gradP[i + 256] = this.grad3[val % 12];
+    }
+  }
+
+  fade(t: number) {
+    return t * t * t * (t * (6 * t - 15) + 10);
+  }
+
+  lerp(a: number, b: number, t: number) {
+    return (1 - t) * a + t * b;
+  }
+
+  perlin2(x: number, y: number) {
+    let X = Math.floor(x);
+    let Y = Math.floor(y);
+    x -= X;
+    y -= Y;
+    X &= 255;
+    Y &= 255;
+    const n00 = this.gradP[X + this.perm[Y]].dot2(x, y);
+    const n01 = this.gradP[X + this.perm[Y + 1]].dot2(x, y - 1);
+    const n10 = this.gradP[X + 1 + this.perm[Y]].dot2(x - 1, y);
+    const n11 = this.gradP[X + 1 + this.perm[Y + 1]].dot2(x - 1, y - 1);
+    const u = this.fade(x);
+    return this.lerp(this.lerp(n00, n10, u), this.lerp(n01, n11, u), this.fade(y));
+  }
+}
+
+interface WavePoint {
+  x: number;
+  y: number;
+  wave: { x: number; y: number };
 }
 
 export const TopographyCanvas: React.FC<TopographyCanvasProps> = ({
-  strokeColor = 'rgba(0, 255, 65, 0.16)',
+  lineColor = 'rgba(0, 255, 65, 0.28)',
+  backgroundColor = 'transparent',
+  waveSpeedX = 0.0125,
+  waveSpeedY = 0.005,
+  waveAmpX = 32,
+  waveAmpY = 16,
+  xGap = 12,
+  yGap = 36,
   className = '',
-  speed = 0.0008,
-  lineSpacing = 28,
+  style = {},
 }) => {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const { shouldAnimate } = useInViewAnimation(containerRef);
-  const shouldAnimateRef = useRef(shouldAnimate);
-
-  useEffect(() => {
-    shouldAnimateRef.current = shouldAnimate;
-  }, [shouldAnimate]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -42,119 +128,133 @@ export const TopographyCanvas: React.FC<TopographyCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const noise = new SimplexNoise(42);
-    let animationFrameId: number;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const noise = new ClassicalPerlinNoise(0.42);
+    let columns: WavePoint[][] = [];
     let width = 0;
     let height = 0;
 
-    interface GridPoint {
-      x: number;
-      y: number;
-      waveX: number;
-      waveY: number;
-    }
-
-    let grid: GridPoint[][] = [];
-
     const resize = () => {
       const rect = container.getBoundingClientRect();
-      width = rect.width;
-      height = rect.height;
+      width = rect.width || window.innerWidth;
+      height = rect.height || window.innerHeight;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      buildGrid();
     };
 
-    const xSpacing = 32;
-    const ySpacing = lineSpacing;
-
     const buildGrid = () => {
-      grid = [];
-      const cols = Math.ceil((width + 200) / xSpacing);
-      const rows = Math.ceil((height + 100) / ySpacing);
-      const startX = (width - xSpacing * cols) / 2;
-      const startY = (height - ySpacing * rows) / 2;
+      columns = [];
+      const cols = Math.ceil((width + 200) / xGap);
+      const rows = Math.ceil((height + 30) / yGap);
+      const startX = (width - xGap * cols) / 2;
+      const startY = (height - yGap * rows) / 2;
 
-      for (let r = 0; r <= rows; r++) {
-        const row: GridPoint[] = [];
-        for (let c = 0; c <= cols; c++) {
-          row.push({
-            x: startX + c * xSpacing,
-            y: startY + r * ySpacing,
-            waveX: 0,
-            waveY: 0,
+      for (let c = 0; c <= cols; c++) {
+        const col: WavePoint[] = [];
+        for (let r = 0; r <= rows; r++) {
+          col.push({
+            x: startX + xGap * c,
+            y: startY + yGap * r,
+            wave: { x: 0, y: 0 },
           });
         }
-        grid.push(row);
+        columns.push(col);
       }
     };
 
     const updateWaves = (time: number) => {
-      const t = time * speed;
-      for (let r = 0; r < grid.length; r++) {
-        for (let c = 0; c < grid[r].length; c++) {
-          const pt = grid[r][c];
-          // Perlin noise calculation for organic topological wave
-          const n = 12 * noise.perlin2((pt.x + t * 40) * 0.0018, (pt.y + t * 25) * 0.0015);
-          pt.waveX = Math.cos(n) * 22;
-          pt.waveY = Math.sin(n) * 22;
-        }
-      }
+      columns.forEach((col) => {
+        col.forEach((pt) => {
+          const n =
+            12 *
+            noise.perlin2(
+              (pt.x + time * waveSpeedX) * 0.002,
+              (pt.y + time * waveSpeedY) * 0.0015
+            );
+          pt.wave.x = Math.cos(n) * waveAmpX;
+          pt.wave.y = Math.sin(n) * waveAmpY;
+        });
+      });
     };
 
-    const render = (time: number) => {
-      if (!shouldAnimateRef.current) {
-        animationFrameId = requestAnimationFrame(render);
-        return;
-      }
+    const projectPoint = (pt: WavePoint) => ({
+      x: Math.round(10 * (pt.x + pt.wave.x)) / 10,
+      y: Math.round(10 * (pt.y + pt.wave.y)) / 10,
+    });
 
+    const draw = () => {
       ctx.clearRect(0, 0, width, height);
-      updateWaves(time);
-
+      if (backgroundColor !== 'transparent') {
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, width, height);
+      }
       ctx.beginPath();
-      ctx.strokeStyle = strokeColor;
+      ctx.strokeStyle = lineColor;
       ctx.lineWidth = 1;
 
-      for (let r = 0; r < grid.length; r++) {
-        const row = grid[r];
-        if (row.length === 0) continue;
+      columns.forEach((col) => {
+        let first = projectPoint(col[0]);
+        ctx.moveTo(first.x, first.y);
 
-        ctx.moveTo(row[0].x + row[0].waveX, row[0].y + row[0].waveY);
-
-        for (let c = 1; c < row.length; c++) {
-          const pt = row[c];
-          ctx.lineTo(pt.x + pt.waveX, pt.y + pt.waveY);
-        }
-      }
+        col.forEach((pt, idx) => {
+          const isLast = idx === col.length - 1;
+          const next = projectPoint(col[idx + 1] || col[col.length - 1]);
+          first = projectPoint(pt);
+          ctx.lineTo(first.x, first.y);
+          if (isLast) ctx.moveTo(next.x, next.y);
+        });
+      });
 
       ctx.stroke();
-      animationFrameId = requestAnimationFrame(render);
     };
 
+    let animId = 0;
     resize();
-    animationFrameId = requestAnimationFrame(render);
+    buildGrid();
 
-    window.addEventListener('resize', resize);
+    if (prefersReducedMotion) {
+      updateWaves(0);
+      draw();
+    } else {
+      const render = (time: number) => {
+        updateWaves(time);
+        draw();
+        animId = requestAnimationFrame(render);
+      };
+      animId = requestAnimationFrame(render);
+    }
+
+    const onResize = () => {
+      resize();
+      buildGrid();
+    };
+
+    window.addEventListener('resize', onResize);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('resize', resize);
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', onResize);
     };
-  }, [strokeColor, speed, lineSpacing]);
+  }, [lineColor, backgroundColor, waveSpeedX, waveSpeedY, waveAmpX, waveAmpY, xGap, yGap]);
 
   return (
     <div
       ref={containerRef}
       aria-hidden="true"
-      className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
+      className={className}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        overflow: 'hidden',
+        pointerEvents: 'none',
+        ...style,
+      }}
     >
-      <canvas ref={canvasRef} className="block w-full h-full" />
+      <canvas ref={canvasRef} style={{ display: 'block' }} />
     </div>
   );
 };

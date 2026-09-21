@@ -1,151 +1,192 @@
-import React, { useState } from 'react';
-import { Github, Linkedin, ExternalLink } from 'lucide-react';
-import { MatrixRain } from '../Preloader/MatrixRain';
-import { LeaderModal } from '../Modals/LeaderModal';
-import { useData } from '../../context/DataContext';
-import { Leader } from '../../types';
-import { handleImageError } from '../../utils/imageFallback';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Github, Linkedin } from 'lucide-react';
+import { LeaderModal, LeaderData } from '../Modals/LeaderModal';
+import { SectionHeader } from '../UI/SectionHeader';
 
 /**
  * Leadership Section Component
  * 
  * Non-technical explanation:
- * Showcases the student executives of CIPHER (President, VP, Secretary, Treasurers).
- * Each card features a Matrix rain backdrop, headshot, verified social icons,
- * and can be clicked to open a spotlight modal with more details.
+ * Displays the CIPHER leadership council in a buttery-smooth auto-scrolling
+ * horizontal loop. Features grayscale portrait cards that transition to color
+ * on hover, pause smoothly during touch/scroll interaction, and open a focused
+ * dossier modal on click.
  */
 
+const LEADERS: LeaderData[] = [
+  {
+    role: 'President',
+    name: 'Elston Herold Pereira',
+    photo: '/leadership/president.webp',
+    github: '#',
+    linkedin: '#',
+  },
+  {
+    role: 'Vice President',
+    name: 'Raynell Lewis',
+    photo: '/leadership/vice-president.webp',
+    github: '#',
+    linkedin: '#',
+  },
+  {
+    role: 'Secretary',
+    name: 'Chaitra R M',
+    photo: '/leadership/secretary.webp',
+    github: '#',
+    linkedin: '#',
+  },
+  {
+    role: 'Treasurer',
+    name: 'Nazmin Ziya',
+    photo: '/leadership/treasurer.webp',
+    github: '#',
+    linkedin: '#',
+  },
+  {
+    role: 'Joint Treasurer',
+    name: 'Jeslin Ninora',
+    photo: '/leadership/joint-treasurer.webp',
+    github: '#',
+    linkedin: '#',
+  },
+];
+
 export const LeadershipSection: React.FC = () => {
-  const { leadership } = useData();
-  const [selectedLeader, setSelectedLeader] = useState<Leader | null>(null);
+  const [selectedLeader, setSelectedLeader] = useState<LeaderData | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isInteracting = useRef<boolean>(false);
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Repeated list for continuous seamless infinite loop
+  const loopList = [...LEADERS, ...LEADERS];
+
+  // Auto-scroll loop
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    let animId = 0;
+    const tick = () => {
+      const halfWidth = el.scrollWidth / 2;
+      if (!isInteracting.current) {
+        el.scrollLeft += 0.5;
+      }
+      if (el.scrollLeft >= halfWidth) {
+        el.scrollLeft -= halfWidth;
+      } else if (el.scrollLeft <= 0) {
+        el.scrollLeft += halfWidth;
+      }
+      animId = requestAnimationFrame(tick);
+    };
+
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
+  }, []);
+
+  const handleInteraction = () => {
+    isInteracting.current = true;
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    resumeTimerRef.current = setTimeout(() => {
+      isInteracting.current = false;
+    }, 1200);
+  };
 
   return (
-    <section id="leadership" className="relative border-t border-[#123a17] py-24 md:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
-        {/* Header */}
-        <div className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.3em] text-[#00ff41]">
-          <span>// GOVERNANCE</span>
-          <span className="text-[#2c7a3a] hidden sm:inline">&gt;&gt; EXECUTIVE_BOARD</span>
-        </div>
+    <section id="leadership" className="relative border-t border-[var(--border)] py-24">
+      <div className="mx-auto max-w-7xl px-5">
+        {/* Section Tag & Heading */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.25 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <SectionHeader label="governance" title="Leadership Structure" />
+        </motion.div>
 
-        <h2 className="mt-4 font-display text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#c8f7d0] text-glow">
-          Leadership Structure
-        </h2>
+        {/* Carousel Container with Edge Gradient Fades */}
+        <div
+          style={{
+            maskImage: 'linear-gradient(to right, transparent, black 6%, black 94%, transparent)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent, black 6%, black 94%, transparent)',
+          }}
+          className="group relative mt-14"
+        >
+          <div
+            ref={scrollRef}
+            onWheel={handleInteraction}
+            onPointerDown={handleInteraction}
+            onTouchMove={handleInteraction}
+            className="no-scrollbar flex w-full cursor-grab gap-5 overflow-x-auto overscroll-x-contain"
+          >
+            {loopList.map((leader, idx) => (
+              <div
+                key={`${leader.role}-${idx}`}
+                role="button"
+                tabIndex={0}
+                data-cursor="lens"
+                onClick={() => setSelectedLeader(leader)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedLeader(leader);
+                  }
+                }}
+                className="flex w-[240px] shrink-0 cursor-pointer flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)]/50 text-left transition-all duration-300 hover:border-[var(--matrix)] hover:box-glow sm:w-[280px]"
+              >
+                {/* Photo with Matrix/Gradient Fade */}
+                <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#050705]">
+                  <img
+                    src={leader.photo}
+                    alt={`${leader.name}, ${leader.role}`}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover grayscale transition-all duration-500 hover:grayscale-0"
+                    draggable={false}
+                  />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#050705] via-transparent to-transparent" />
+                </div>
 
-        <p className="mt-4 font-mono text-xs sm:text-sm text-[#6fae78] max-w-xl">
-          Elected student representatives leading the association under faculty mentorship from the Department of Computer Science & Engineering.
-        </p>
-
-        {/* Telemetry Status Bar */}
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-[#123a17] pb-3 text-xs">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-[#00ff41] flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#00ff41] animate-pulse" />
-            // STREAM: 5 ELECTED COUNCIL DIRECTORS
-          </span>
-          <span className="font-mono text-[10px] text-[#6fae78] tracking-wider hidden sm:inline">
-            [ HOVER CARD TO PAUSE &amp; VIEW DOSSIER ]
-          </span>
-        </div>
-      </div>
-
-      {/* Continuous Infinite Right-to-Left Loop Marquee */}
-      <div className="relative mt-8 w-full overflow-hidden py-4">
-        {/* Left & Right Edge Vignette Fades */}
-        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-16 sm:w-32 z-20 bg-gradient-to-r from-[#050705] via-[#050705]/80 to-transparent" />
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-16 sm:w-32 z-20 bg-gradient-to-l from-[#050705] via-[#050705]/80 to-transparent" />
-
-        {/* Moving Loop Track */}
-        <div className="animate-marquee-rtl flex items-stretch gap-6 px-4">
-          {/* Repeat list 4 times (2 sets of 2) to guarantee seamless infinite wrapping on all viewports */}
-          {[...leadership, ...leadership, ...leadership, ...leadership].map((leader, index) => (
-            <div
-              key={`${leader.id}-loop-${index}`}
-              onClick={() => setSelectedLeader(leader)}
-              className="group relative flex w-[260px] sm:w-[280px] md:w-[300px] shrink-0 flex-col overflow-hidden rounded-xl border border-[#123a17] bg-[#080d08] transition-all duration-300 hover:border-[#00ff41] hover:shadow-[0_0_30px_rgba(0,255,65,0.3)] hover:-translate-y-1 cursor-pointer select-none"
-              data-cursor="lens"
-            >
-              {/* Corner Cyber Accents */}
-              <span className="absolute top-2 left-2 z-20 font-mono text-[9px] text-[#00ff41]/40 select-none group-hover:text-[#00ff41] transition-colors">+</span>
-              <span className="absolute top-2 right-2 z-20 font-mono text-[9px] text-[#00ff41]/40 select-none group-hover:text-[#00ff41] transition-colors">+</span>
-
-              {/* Image Container with Matrix Rain Overlay */}
-              <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#050705]">
-                {/* Matrix Rain in card background */}
-                <MatrixRain opacity={0.12} className="z-0" />
-
-                {/* Leader Cutout Photo */}
-                <img
-                  src={leader.image}
-                  alt={leader.name}
-                  loading="lazy"
-                  decoding="async"
-                  onError={handleImageError}
-                  className="relative z-10 h-full w-full object-cover object-top grayscale contrast-125 transition-transform duration-500 group-hover:scale-105 group-hover:grayscale-0"
-                  draggable={false}
-                />
-
-                {/* Bottom gradient fade for text legibility */}
-                <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#080d08] via-[#080d08]/50 to-transparent" />
-              </div>
-
-              {/* Card Bottom Meta */}
-              <div className="relative z-20 flex flex-col p-5 bg-[#080d08] flex-1 justify-between">
-                <div>
-                  <span className="font-mono text-[11px] font-semibold uppercase tracking-widest text-[#00ff41]">
+                {/* Meta details */}
+                <div className="flex flex-col items-center gap-1 px-4 py-5 text-center">
+                  <span className="font-mono text-xs uppercase tracking-widest text-[var(--matrix)]">
                     {leader.role}
                   </span>
-
-                  <h3 className="mt-1 font-display text-base font-bold text-[#c8f7d0] group-hover:text-[#00ff41] transition-colors">
+                  <span className="font-display text-lg leading-tight text-foreground">
                     {leader.name}
-                  </h3>
-                </div>
-
-                {/* Social icons & Dossier trigger */}
-                <div
-                  className="mt-4 flex items-center gap-3 pt-3 border-t border-[#123a17]"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {leader.github && (
+                  </span>
+                  <div className="mt-2 flex items-center gap-3">
                     <a
-                      href={leader.github}
+                      href={leader.github || '#'}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       aria-label={`${leader.name} on GitHub`}
-                      className="text-[#6fae78] transition-colors hover:text-[#00ff41]"
+                      className="text-muted-foreground transition-colors hover:text-[var(--matrix)]"
                     >
-                      <Github size={15} />
+                      <Github size={20} />
                     </a>
-                  )}
-                  {leader.linkedin && (
                     <a
-                      href={leader.linkedin}
+                      href={leader.linkedin || '#'}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       aria-label={`${leader.name} on LinkedIn`}
-                      className="text-[#6fae78] transition-colors hover:text-[#00ff41]"
+                      className="text-muted-foreground transition-colors hover:text-[var(--matrix)]"
                     >
-                      <Linkedin size={15} />
+                      <Linkedin size={20} />
                     </a>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedLeader(leader)}
-                    className="ml-auto font-mono text-[10px] text-[#2c7a3a] flex items-center gap-1 group-hover:text-[#00ff41] transition-colors"
-                  >
-                    BIO <ExternalLink size={10} />
-                  </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Spotlight Modal */}
-      <LeaderModal
-        leader={selectedLeader}
-        onClose={() => setSelectedLeader(null)}
-      />
+      {/* Focused Dossier Modal on Card Click */}
+      <LeaderModal leader={selectedLeader} onClose={() => setSelectedLeader(null)} />
     </section>
   );
 };

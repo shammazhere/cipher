@@ -4,9 +4,10 @@ import React, { useEffect, useRef } from 'react';
  * AsciiCipherHero Canvas Component
  * 
  * Non-technical explanation:
- * Renders the huge, interactive "CIPHER" banner in the Hero section.
- * The text is made out of animated cyber ASCII symbols.
- * If you move your mouse over it, the symbols react to your cursor like a forcefield!
+ * Renders the huge interactive ASCII "CIPHER" banner from the reference video.
+ * Uses font rasterization to map the word CIPHER to characters from ".:-+*=#%@CIPHER".
+ * Moving the cursor over the letters creates physical elastic repulsion waves with
+ * fluid spring restitution and color shift.
  */
 
 interface AsciiCipherHeroProps {
@@ -14,7 +15,7 @@ interface AsciiCipherHeroProps {
   className?: string;
 }
 
-const ASCII_RAMP = ".:-+*=#%@CIPHER";
+const ASCII_RAMP = '.:-+*=#%@CIPHER';
 
 interface AsciiParticle {
   col: number;
@@ -28,11 +29,11 @@ interface AsciiParticle {
 }
 
 export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
-  height = '38vh',
+  height = '40vh',
   className = '',
 }) => {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -43,6 +44,8 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
     if (!ctx) return;
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     let width = 0;
     let heightPx = 0;
     let charSize = 8;
@@ -51,9 +54,8 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
     let rows = 0;
     let particles: AsciiParticle[] = [];
     const mouse = { col: -999, row: -999, active: false };
-    let animId: number;
 
-    const renderParticles = () => {
+    const render = () => {
       ctx.font = `${charSize + 2}px monospace`;
       ctx.textBaseline = 'top';
       ctx.textAlign = 'center';
@@ -64,10 +66,9 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
         if (!p.isLit) continue;
 
         const dist = Math.min(1, Math.hypot(p.offsetX, p.offsetY) / 3);
-        // Dynamic green color shifting from bright matrix green to cyan/white when disturbed
-        const r = Math.round(0 + 140 * dist);
-        const g = Math.round(255 - 20 * dist);
-        const b = Math.round(65 + 100 * dist);
+        const r = Math.round(140 - 140 * dist);
+        const g = Math.round(255 + 0 * dist);
+        const b = Math.round(170 - 105 * dist);
 
         ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
         const drawX = (p.col + Math.round(p.offsetX)) * cellStep;
@@ -76,7 +77,7 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
       }
     };
 
-    const buildAsciiMatrix = () => {
+    const buildGrid = () => {
       const rect = container.getBoundingClientRect();
       width = rect.width;
       heightPx = rect.height;
@@ -88,181 +89,210 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
       cols = Math.floor(width / cellStep);
       rows = Math.floor(heightPx / cellStep);
 
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(heightPx * dpr);
+      canvas.width = width * dpr;
+      canvas.height = heightPx * dpr;
       canvas.style.width = `${width}px`;
       canvas.style.height = `${heightPx}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // Offscreen canvas to rasterize "CIPHER" font shape
-      const textWidth = Math.min(0.85 * width, 1150);
-      const textHeight = 0.25 * textWidth;
-      const targetCol = Math.floor((width - textWidth) / 2 / cellStep);
-      const targetRow = Math.floor((heightPx - textHeight) / 2 / cellStep);
-      const textCols = Math.max(1, Math.ceil(textWidth / cellStep));
-      const textRows = Math.max(1, Math.ceil(textHeight / cellStep));
+      // Rasterize CIPHER text on temporary offscreen canvas
+      const textWidth = Math.min(0.82 * width, 1100);
+      const textHeight = 0.24 * textWidth;
+      const startCol = Math.floor((width - textWidth) / 2 / cellStep);
+      const startRow = Math.floor((heightPx - textHeight) / 2 / cellStep);
+      const sampleCols = Math.max(1, Math.ceil(textWidth / cellStep));
+      const sampleRows = Math.max(1, Math.ceil(textHeight / cellStep));
 
-      const offCanvas = document.createElement('canvas');
-      offCanvas.width = Math.max(2, Math.round(textWidth));
-      offCanvas.height = Math.max(2, Math.round(textHeight));
-      const offCtx = offCanvas.getContext('2d');
-      if (!offCtx) return;
+      const offscreen = document.createElement('canvas');
+      offscreen.width = Math.max(2, Math.round(textWidth));
+      offscreen.height = Math.max(2, Math.round(textHeight));
+      const offCtx = offscreen.getContext('2d');
 
-      offCtx.fillStyle = '#000';
-      offCtx.fillRect(0, 0, offCanvas.width, offCanvas.height);
-      offCtx.fillStyle = '#fff';
-      offCtx.textAlign = 'center';
-      offCtx.textBaseline = 'middle';
+      if (offCtx) {
+        offCtx.fillStyle = '#000';
+        offCtx.fillRect(0, 0, offscreen.width, offscreen.height);
+        offCtx.fillStyle = '#fff';
+        offCtx.textAlign = 'center';
+        offCtx.textBaseline = 'middle';
 
-      const text = 'CIPHER';
-      let fontSize = 0.95 * offCanvas.height;
-      const getFont = (size: number) => `bold ${size}px "JetBrains Mono", "Space Grotesk", sans-serif`;
+        const word = 'CIPHER';
+        let fontSize = 0.92 * offscreen.height;
+        const fontStr = (size: number) =>
+          `bold ${size}px 'Arial Black','Helvetica Neue',Arial,sans-serif`;
 
-      offCtx.font = getFont(fontSize);
-      while (offCtx.measureText(text).width > 0.96 * offCanvas.width && fontSize > 4) {
-        fontSize -= 2;
-        offCtx.font = getFont(fontSize);
-      }
-      offCtx.fillText(text, offCanvas.width / 2, offCanvas.height / 2);
+        offCtx.font = fontStr(fontSize);
+        while (offCtx.measureText(word).width > 0.96 * offscreen.width && fontSize > 4) {
+          fontSize -= 2;
+          offCtx.font = fontStr(fontSize);
+        }
 
-      // Downsample offscreen raster to grid cells
-      const sampleCanvas = document.createElement('canvas');
-      sampleCanvas.width = textCols;
-      sampleCanvas.height = textRows;
-      const sampleCtx = sampleCanvas.getContext('2d');
-      if (!sampleCtx) return;
+        offCtx.fillText(word, offscreen.width / 2, offscreen.height / 2 + 0.02 * fontSize);
 
-      sampleCtx.drawImage(offCanvas, 0, 0, textCols, textRows);
-      const { data: pixelData } = sampleCtx.getImageData(0, 0, textCols, textRows);
+        const scaled = document.createElement('canvas');
+        scaled.width = sampleCols;
+        scaled.height = sampleRows;
+        const scaledCtx = scaled.getContext('2d');
+        if (scaledCtx) {
+          scaledCtx.fillStyle = '#000';
+          scaledCtx.fillRect(0, 0, sampleCols, sampleRows);
+          scaledCtx.drawImage(offscreen, 0, 0, sampleCols, sampleRows);
 
-      particles = [];
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          let isLit = false;
-          let char = ' ';
+          const { data } = scaledCtx.getImageData(0, 0, sampleCols, sampleRows);
+          particles = [];
 
-          if (
-            c >= targetCol &&
-            c < targetCol + textCols &&
-            r >= targetRow &&
-            r < targetRow + textRows
-          ) {
-            const index = ((r - targetRow) * textCols + (c - targetCol)) * 4;
-            const brightness =
-              (0.299 * pixelData[index] +
-                0.587 * pixelData[index + 1] +
-                0.114 * pixelData[index + 2]) /
-              255;
+          for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+              let isLit = false;
+              let char = ' ';
 
-            if (brightness > 0.45) {
-              isLit = true;
-              const rampIdx = Math.min(
-                ASCII_RAMP.length - 1,
-                Math.floor(brightness * ASCII_RAMP.length)
-              );
-              char = ASCII_RAMP[rampIdx];
+              if (
+                c >= startCol &&
+                c < startCol + sampleCols &&
+                r >= startRow &&
+                r < startRow + sampleRows
+              ) {
+                const idx = ((r - startRow) * sampleCols + (c - startCol)) * 4;
+                const brightness = (0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2]) / 255;
+                isLit = brightness > 0.5;
+                char = isLit
+                  ? ASCII_RAMP[Math.min(ASCII_RAMP.length - 1, Math.floor(brightness * ASCII_RAMP.length))]
+                  : ' ';
+              }
+
+              particles.push({
+                col: c,
+                row: r,
+                char,
+                isLit,
+                offsetX: 0,
+                offsetY: 0,
+                velX: 0,
+                velY: 0,
+              });
             }
           }
-
-          particles.push({
-            col: c,
-            row: r,
-            char,
-            isLit,
-            offsetX: 0,
-            offsetY: 0,
-            velX: 0,
-            velY: 0,
-          });
         }
       }
+
+      render();
     };
 
-    buildAsciiMatrix();
+    buildGrid();
 
-    // Mouse tracking for particle repulsion
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = container.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      mouse.col = x / cellStep;
-      mouse.row = y / cellStep;
-      mouse.active = true;
-    };
+    if (prefersReducedMotion) {
+      const onResize = () => buildGrid();
+      window.addEventListener('resize', onResize);
+      return () => window.removeEventListener('resize', onResize);
+    }
 
-    const handleMouseLeave = () => {
-      mouse.active = false;
-    };
-
-    container.addEventListener('mousemove', handleMouseMove);
-    container.addEventListener('mouseleave', handleMouseLeave);
-    window.addEventListener('resize', buildAsciiMatrix);
-
-    // Random symbol flicker timer
-    const flickerInterval = setInterval(() => {
+    // Scramble lit characters every 50ms
+    const scrambleInterval = setInterval(() => {
       for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        if (p.isLit && Math.random() < 0.05) {
-          p.char = ASCII_RAMP[Math.floor(Math.random() * ASCII_RAMP.length)];
+        if (particles[i].isLit) {
+          particles[i].char = ASCII_RAMP[Math.floor(Math.random() * ASCII_RAMP.length)];
         }
       }
-    }, 70);
+    }, 50);
 
-    // Physics update loop
-    const physicsLoop = () => {
+    let animId = 0;
+    const loop = () => {
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
         if (!p.isLit) continue;
 
-        // Force from mouse cursor
         if (mouse.active) {
           const dx = p.col + p.offsetX - mouse.col;
           const dy = p.row + p.offsetY - mouse.row;
-          const dist = Math.hypot(dx, dy);
-          const maxDist = 9;
+          const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < maxDist && dist > 0) {
-            const force = (1 - dist / maxDist) * 18;
-            p.velX += (dx / dist) * force;
-            p.velY += (dy / dist) * force;
+          if (dist < 10 && dist > 0) {
+            const force = 1 - dist / 10;
+            const impulse = force ** 2 * 42;
+            p.velX += (dx / dist) * impulse;
+            p.velY += (dy / dist) * impulse;
+            p.velX += (Math.random() - 0.5) * 5.5 * force;
+            p.velY += (Math.random() - 0.5) * 5.5 * force;
           }
         }
 
-        // Spring force returning to resting position
-        p.velX += -0.15 * p.offsetX;
-        p.velY += -0.15 * p.offsetY;
-
-        // Damping
-        p.velX *= 0.82;
-        p.velY *= 0.82;
-
+        p.velX += -0.025 * p.offsetX;
+        p.velY += -0.025 * p.offsetY;
+        p.velX *= 0.5;
+        p.velY *= 0.5;
         p.offsetX += p.velX;
         p.offsetY += p.velY;
+
+        if (Math.abs(p.offsetX) < 0.01 && Math.abs(p.velX) < 0.01) {
+          p.offsetX = 0;
+          p.velX = 0;
+        }
+        if (Math.abs(p.offsetY) < 0.01 && Math.abs(p.velY) < 0.01) {
+          p.offsetY = 0;
+          p.velY = 0;
+        }
       }
 
-      renderParticles();
-      animId = requestAnimationFrame(physicsLoop);
+      render();
+      animId = requestAnimationFrame(loop);
     };
 
-    animId = requestAnimationFrame(physicsLoop);
+    animId = requestAnimationFrame(loop);
+
+    const onPointerMove = (e: PointerEvent) => {
+      const rect = container.getBoundingClientRect();
+      mouse.col = (e.clientX - rect.left) / cellStep;
+      mouse.row = (e.clientY - rect.top) / cellStep;
+      mouse.active = true;
+    };
+
+    const onPointerLeave = () => {
+      mouse.active = false;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        const rect = container.getBoundingClientRect();
+        mouse.col = (touch.clientX - rect.left) / cellStep;
+        mouse.row = (touch.clientY - rect.top) / cellStep;
+        mouse.active = true;
+      }
+    };
+
+    const onTouchEnd = () => {
+      mouse.active = false;
+    };
+
+    const onResize = () => {
+      buildGrid();
+    };
+
+    window.addEventListener('resize', onResize);
+    container.addEventListener('pointermove', onPointerMove);
+    container.addEventListener('pointerleave', onPointerLeave);
+    container.addEventListener('touchstart', onTouchMove, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: true });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
 
     return () => {
+      clearInterval(scrambleInterval);
       cancelAnimationFrame(animId);
-      clearInterval(flickerInterval);
-      container.removeEventListener('mousemove', handleMouseMove);
-      container.removeEventListener('mouseleave', handleMouseLeave);
-      window.removeEventListener('resize', buildAsciiMatrix);
+      window.removeEventListener('resize', onResize);
+      container.removeEventListener('pointermove', onPointerMove);
+      container.removeEventListener('pointerleave', onPointerLeave);
+      container.removeEventListener('touchstart', onTouchMove);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
     };
   }, []);
 
   return (
     <div
       ref={containerRef}
-      aria-hidden="true"
-      className={`relative w-full overflow-hidden select-none cursor-crosshair ${className}`}
-      style={{ height }}
+      className={`cl-root relative w-full overflow-hidden bg-transparent font-mono cursor-crosshair select-none ${className}`}
+      style={{ height, touchAction: 'pan-y' }}
     >
-      <canvas ref={canvasRef} className="absolute inset-0 block w-full h-full" />
+      <canvas ref={canvasRef} className="cl-canvas absolute inset-0 block w-full h-full" />
     </div>
   );
 };
