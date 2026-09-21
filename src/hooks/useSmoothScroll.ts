@@ -52,8 +52,8 @@ export function useSmoothScroll({ disabled = false, isModalOpen = false }: UseSm
 
       const href = target.getAttribute('href');
       if (href && href.startsWith('#') && href.length > 1) {
-        // Skip administrative routes and component library anchors handled by React router state
-        if (href === '#admin' || href === '#components') return;
+        // Skip administrative route handled by React router state
+        if (href === '#admin') return;
 
         const targetEl = document.querySelector(href);
         if (targetEl) {
