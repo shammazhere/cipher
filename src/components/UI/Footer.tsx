@@ -75,8 +75,14 @@ export const Footer: React.FC = () => {
 
       {/* Bottom Copyright Strip */}
       <div className="mx-auto mt-8 max-w-6xl px-5">
-        <div className="border-t border-[var(--border)] pt-6 text-center font-mono text-xs text-[var(--matrix-dim)]">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-[var(--border)] pt-6 font-mono text-xs text-[var(--matrix-dim)]">
           <span>&gt; &copy; {new Date().getFullYear()} CIPHER SJEC.</span>
+          <a
+            href="#admin"
+            className="text-[11px] text-muted-foreground/60 transition-colors hover:text-[var(--matrix)] flex items-center gap-1"
+          >
+            <span>[ admin login ]</span>
+          </a>
         </div>
       </div>
     </footer>

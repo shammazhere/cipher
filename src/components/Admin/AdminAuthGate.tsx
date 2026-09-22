@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShieldAlert, KeyRound, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Terminal, AlertTriangle } from 'lucide-react';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
-import { soundEffects } from '../../utils/soundEffects';
 
 /**
  * Admin Authentication Gate Component
@@ -37,19 +36,15 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ onAuthenticated, o
       setIsAuthorizing(false);
 
       if (success) {
-        soundEffects.playSuccess();
         setIsGranted(true);
         setTimeout(() => {
           onAuthenticated();
         }, 800);
-      } else {
-        soundEffects.playError();
       }
     }, 500);
   };
 
   const handleUseDemoKey = () => {
-    soundEffects.playClick();
     setPasskey('cipher@sjec2026');
   };
 

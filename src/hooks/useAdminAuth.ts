@@ -7,20 +7,17 @@ import { useState, useEffect, useCallback } from 'react';
  * Guards the administrative CMS with a secure cyberpunk login gate:
  * - Checks whether the user is already authenticated via sessionStorage.
  * - Validates administrative passkeys with brute-force defense (lockout after 3 fails).
- * - Synchronizes authentication state across all components and browser tabs.
  * - Provides a clear logout mechanism.
  */
 
 const MASTER_KEYS = ['cipher@sjec2026', 'cipher2026', 'admin2026'];
 const MAX_ATTEMPTS = 3;
 const LOCKOUT_SECONDS = 30;
-export const AUTH_STORAGE_KEY = 'cipher_admin_authenticated';
-export const AUTH_CHANGE_EVENT = 'cipher_admin_auth_sync';
 
 export function useAdminAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     try {
-      return sessionStorage.getItem(AUTH_STORAGE_KEY) === 'true';
+      return sessionStorage.getItem('cipher_admin_authenticated') === 'true';
     } catch {
       return false;
     }
@@ -29,25 +26,6 @@ export function useAdminAuth() {
   const [failedAttempts, setFailedAttempts] = useState<number>(0);
   const [lockoutTimer, setLockoutTimer] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  // Synchronize authentication state across components & storage changes
-  useEffect(() => {
-    const handleSync = () => {
-      try {
-        setIsAuthenticated(sessionStorage.getItem(AUTH_STORAGE_KEY) === 'true');
-      } catch {
-        setIsAuthenticated(false);
-      }
-    };
-
-    window.addEventListener(AUTH_CHANGE_EVENT, handleSync);
-    window.addEventListener('storage', handleSync);
-
-    return () => {
-      window.removeEventListener(AUTH_CHANGE_EVENT, handleSync);
-      window.removeEventListener('storage', handleSync);
-    };
-  }, []);
 
   // Lockout countdown timer effect
   useEffect(() => {
@@ -64,20 +42,6 @@ export function useAdminAuth() {
     return () => clearInterval(interval);
   }, [lockoutTimer]);
 
-  const refreshAuth = useCallback(() => {
-    try {
-      const auth = sessionStorage.getItem(AUTH_STORAGE_KEY) === 'true';
-      setIsAuthenticated(auth);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent(AUTH_CHANGE_EVENT));
-      }
-      return auth;
-    } catch {
-      setIsAuthenticated(false);
-      return false;
-    }
-  }, []);
-
   const login = useCallback((passkey: string): boolean => {
     if (lockoutTimer > 0) {
       setErrorMsg(`Access locked. Retry in ${lockoutTimer}s.`);
@@ -88,7 +52,7 @@ export function useAdminAuth() {
 
     if (MASTER_KEYS.includes(cleanKey)) {
       try {
-        sessionStorage.setItem(AUTH_STORAGE_KEY, 'true');
+        sessionStorage.setItem('cipher_admin_authenticated', 'true');
       } catch {
         // Fallback if private browsing blocks storage
       }
@@ -113,24 +77,28 @@ export function useAdminAuth() {
 
   const logout = useCallback(() => {
     try {
-      sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      sessionStorage.removeItem('cipher_admin_authenticated');
     } catch {
       // ignore
     }
     setIsAuthenticated(false);
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent(AUTH_CHANGE_EVENT));
+  }, []);
+
+  const refreshAuth = useCallback(() => {
+    try {
+      setIsAuthenticated(sessionStorage.getItem('cipher_admin_authenticated') === 'true');
+    } catch {
+      setIsAuthenticated(false);
     }
   }, []);
 
   return {
     isAuthenticated,
-    setIsAuthenticated,
-    refreshAuth,
     failedAttempts,
     lockoutTimer,
     errorMsg,
     login,
     logout,
+    refreshAuth,
   };
 }
