@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldAlert, KeyRound, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Terminal, AlertTriangle } from 'lucide-react';
+import { Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Terminal, AlertTriangle, UserPlus, LogIn, CheckCircle2 } from 'lucide-react';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
+import { soundEffects } from '../../utils/soundEffects';
 
 /**
- * Admin Authentication Gate Component
+ * Admin Authentication & Authorization Gate
  * 
- * Non-technical explanation:
- * High-tech security checkpoint for the Admin CMS.
- * Protects club data from unauthorized edits by asking for the CIPHER passkey.
- * Features brute-force protection (lockout after 3 failed tries),
- * quick evaluation key toggle, and futuristic visual feedback.
+ * Powered by Supabase Cloud Database & Auth:
+ * - Direct authentication and new admin registration.
+ * - Brute-force & injection attack defenses.
+ * - Clean interface without unwanted tags or text.
  */
 
 interface AdminAuthGateProps {
@@ -19,33 +19,67 @@ interface AdminAuthGateProps {
 }
 
 export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ onAuthenticated, onCancel }) => {
-  const { login, lockoutTimer, errorMsg } = useAdminAuth();
-  const [passkey, setPasskey] = useState('');
+  const { login, registerAdmin, lockoutTimer } = useAdminAuth();
+  const [mode, setMode] = useState<'signin' | 'register'>('signin');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [isGranted, setIsGranted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!passkey.trim() || lockoutTimer > 0) return;
+    if (!username.trim() || !password.trim()) return;
 
-    setIsAuthorizing(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
 
-    setTimeout(() => {
-      const success = login(passkey);
+    if (mode === 'register') {
+      if (password !== confirmPassword) {
+        soundEffects.playError();
+        setErrorMsg('Passwords do not match. Please verify your password confirmation.');
+        return;
+      }
+
+      setIsAuthorizing(true);
+      soundEffects.playClick();
+
+      const res = await registerAdmin(username, password);
       setIsAuthorizing(false);
 
-      if (success) {
-        setIsGranted(true);
-        setTimeout(() => {
-          onAuthenticated();
-        }, 800);
+      if (res.success) {
+        soundEffects.playSuccess();
+        setSuccessMsg('Successfully registered');
+        setMode('signin');
+        setPassword('');
+        setConfirmPassword('');
+      } else {
+        soundEffects.playError();
+        setErrorMsg(res.error || 'Registration failed.');
       }
-    }, 500);
-  };
+      return;
+    }
 
-  const handleUseDemoKey = () => {
-    setPasskey('cipher@sjec2026');
+    // Sign in mode
+    setIsAuthorizing(true);
+    soundEffects.playClick();
+
+    const res = await login(username, password);
+    setIsAuthorizing(false);
+
+    if (res.success) {
+      soundEffects.playSuccess();
+      setIsGranted(true);
+      setTimeout(() => {
+        onAuthenticated();
+      }, 700);
+    } else {
+      soundEffects.playError();
+      setErrorMsg(res.error || 'Authentication failed. Please verify your credentials.');
+    }
   };
 
   return (
@@ -76,12 +110,12 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ onAuthenticated, o
               ACCESS GRANTED
             </h2>
             <p className="text-xs text-[#6fae78]">
-              Decryption verified. Launching Administrative Controller...
+              Authorization verified. Launching Administrative Controller...
             </p>
           </div>
         ) : (
           /* Authentication Terminal */
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Header */}
             <div className="text-center space-y-2">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl border border-[#123a17] bg-[#050705] text-[#00ff41] shadow-[0_0_20px_rgba(0,255,65,0.2)]">
@@ -89,15 +123,63 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ onAuthenticated, o
               </div>
               <div className="flex items-center justify-center gap-1.5 text-[11px] uppercase tracking-[0.25em] text-[#00ff41]">
                 <Terminal size={13} />
-                <span>// SECURITY_PROTOCOL</span>
+                <span>// SECURITY_GATE</span>
               </div>
               <h2 className="font-display text-2xl font-bold text-[#c8f7d0] text-glow">
                 Admin Authentication
               </h2>
               <p className="text-xs text-[#6fae78] max-w-xs mx-auto">
-                Authorized access only for CIPHER executive council and club leads.
+                Authorized access for CIPHER executive council and club leads.
               </p>
             </div>
+
+            {/* Mode Switcher: Sign In vs Register Admin */}
+            <div className="flex rounded-lg border border-[#123a17] bg-[#050705] p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('signin');
+                  setErrorMsg(null);
+                  setSuccessMsg(null);
+                }}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded py-2 transition-all ${
+                  mode === 'signin'
+                    ? 'bg-[#00ff41] font-bold text-[#050705] shadow-[0_0_15px_rgba(0,255,65,0.3)]'
+                    : 'text-[#6fae78] hover:text-[#c8f7d0]'
+                }`}
+              >
+                <LogIn size={13} />
+                <span>SIGN IN</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('register');
+                  setErrorMsg(null);
+                  setSuccessMsg(null);
+                }}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded py-2 transition-all ${
+                  mode === 'register'
+                    ? 'bg-[#00ff41] font-bold text-[#050705] shadow-[0_0_15px_rgba(0,255,65,0.3)]'
+                    : 'text-[#6fae78] hover:text-[#c8f7d0]'
+                }`}
+              >
+                <UserPlus size={13} />
+                <span>REGISTER ADMIN</span>
+              </button>
+            </div>
+
+            {/* Success Message Banner */}
+            {successMsg && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2 rounded border border-[#00ff41]/50 bg-[#00ff41]/10 p-3 text-xs text-[#00ff41]"
+              >
+                <CheckCircle2 size={15} className="shrink-0" />
+                <span>{successMsg}</span>
+              </motion.div>
+            )}
 
             {/* Error Notification Banner */}
             {errorMsg && (
@@ -111,60 +193,90 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ onAuthenticated, o
               </motion.div>
             )}
 
-            {/* Passkey Input */}
+            {/* Username / Email Input */}
             <div className="space-y-1.5">
-              <label className="flex items-center justify-between text-xs uppercase text-[#c8f7d0]">
-                <span>Executive Passkey</span>
-                <span className="text-[10px] text-[#2c7a3a]">AES-256 ENCRYPTED</span>
+              <label htmlFor="admin_username" className="block text-xs uppercase text-[#c8f7d0]">
+                {mode === 'register' ? 'Admin Username or Email' : 'Username or Email'}
+              </label>
+              <input
+                id="admin_username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder={mode === 'register' ? 'Choose username (e.g. lead_alex)' : 'Enter username or email'}
+                required
+                disabled={isAuthorizing || lockoutTimer > 0}
+                autoFocus
+                className="w-full rounded-lg border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] transition-all focus:border-[#00ff41] focus:outline-none focus:shadow-[0_0_15px_rgba(0,255,65,0.25)] disabled:opacity-50"
+              />
+            </div>
+
+            {/* Password Input */}
+            <div className="space-y-1.5">
+              <label htmlFor="admin_password" className="block text-xs uppercase text-[#c8f7d0]">
+                {mode === 'register' ? 'Create Password' : 'Password'}
               </label>
 
               <div className="relative">
                 <input
+                  id="admin_password"
                   type={showPassword ? 'text' : 'password'}
-                  value={passkey}
-                  onChange={(e) => setPasskey(e.target.value)}
-                  placeholder="Enter security passkey..."
-                  disabled={lockoutTimer > 0 || isAuthorizing}
-                  autoFocus
-                  className="w-full rounded-lg border border-[#123a17] bg-[#050705] px-4 py-3 pr-11 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] transition-all focus:border-[#00ff41] focus:outline-none focus:shadow-[0_0_15px_rgba(0,255,65,0.25)] disabled:opacity-50"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={mode === 'register' ? 'Min 6 characters' : 'Enter password'}
+                  required
+                  disabled={isAuthorizing || lockoutTimer > 0}
+                  className="w-full rounded-lg border border-[#123a17] bg-[#050705] px-4 py-2.5 pr-11 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] transition-all focus:border-[#00ff41] focus:outline-none focus:shadow-[0_0_15px_rgba(0,255,65,0.25)] disabled:opacity-50"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6fae78] hover:text-[#00ff41] transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            {/* Quick Demo Key Helper for Judges / Evaluators */}
-            <div className="flex items-center justify-between text-[11px] text-[#6fae78] border-t border-[#123a17] pt-4">
-              <span>Passkey: <code className="text-[#00ff41] font-bold">cipher@sjec2026</code></span>
-              <button
-                type="button"
-                onClick={handleUseDemoKey}
-                className="text-[10px] uppercase tracking-wider text-[#00ff41] hover:underline"
-              >
-                Auto-Fill
-              </button>
-            </div>
+            {/* Confirm Password Input (Register Mode Only) */}
+            {mode === 'register' && (
+              <div className="space-y-1.5">
+                <label htmlFor="admin_confirm_password" className="block text-xs uppercase text-[#c8f7d0]">
+                  Confirm Password
+                </label>
+                <input
+                  id="admin_confirm_password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter password"
+                  required
+                  disabled={isAuthorizing}
+                  className="w-full rounded-lg border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] transition-all focus:border-[#00ff41] focus:outline-none focus:shadow-[0_0_15px_rgba(0,255,65,0.25)] disabled:opacity-50"
+                />
+              </div>
+            )}
 
             {/* Submit Action */}
             <div className="space-y-3 pt-2">
               <button
                 type="submit"
-                disabled={!passkey.trim() || lockoutTimer > 0 || isAuthorizing}
+                disabled={!username.trim() || !password.trim() || isAuthorizing || lockoutTimer > 0}
                 className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#00ff41] py-3 text-xs font-bold uppercase text-[#050705] hover:bg-[#00ff66] transition-all hover:shadow-[0_0_25px_rgba(0,255,65,0.5)] disabled:opacity-40 disabled:hover:shadow-none"
-                data-cursor="lens"
               >
                 {isAuthorizing ? (
-                  <span>VERIFYING HASH...</span>
+                  <span>AUTHENTICATING...</span>
                 ) : lockoutTimer > 0 ? (
                   <span>LOCKED ({lockoutTimer}s)</span>
+                ) : mode === 'signin' ? (
+                  <>
+                    <span>AUTHENTICATE &amp; ENTER</span>
+                    <ArrowRight size={14} />
+                  </>
                 ) : (
                   <>
-                    <span>AUTHENTICATE</span>
+                    <span>REGISTER NEW ADMIN</span>
                     <ArrowRight size={14} />
                   </>
                 )}
