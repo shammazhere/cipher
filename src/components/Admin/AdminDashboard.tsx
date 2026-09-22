@@ -16,6 +16,11 @@ import {
   ExternalLink,
   LogOut,
   RefreshCw,
+  UserCheck,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Upload,
 } from 'lucide-react';
 import { EventItem, Leader, ArchiveItem, MemberApplication } from '../../types';
 import { useAdminCMS } from '../../hooks/useAdminCMS';
@@ -68,7 +73,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
     importJSON,
   } = useAdminCMS();
 
-  const { user } = useAdminAuth();
+  const {
+    user,
+    isMainAdmin,
+    adminRequests,
+    fetchAdminRequests,
+    approveAdmin,
+    rejectAdmin,
+    deleteAdmin,
+    isLoadingRequests,
+  } = useAdminAuth();
 
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
   const [editingLeader, setEditingLeader] = useState<Leader | null>(null);
@@ -79,7 +93,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
     setTimeout(() => setNotification(null), 3000);
   };
 
+  const handleLeaderPhotoUpload = (file: File) => {
+    if (!file || !file.type.startsWith('image/')) {
+      showNotification('Please select a valid image file (PNG, JPG, WebP).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const rawDataUrl = e.target?.result as string;
+      if (!rawDataUrl) return;
+
+      // Downscale to max 600x600 for optimal fast rendering and Supabase JSON storage
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const optimizedUrl = canvas.toDataURL('image/webp', 0.85);
+          setEditingLeader((prev) => (prev ? { ...prev, image: optimizedUrl } : null));
+          showNotification('Photo uploaded and preview updated.');
+        } else {
+          setEditingLeader((prev) => (prev ? { ...prev, image: rawDataUrl } : null));
+          showNotification('Photo uploaded.');
+        }
+      };
+
+      img.onerror = () => {
+        setEditingLeader((prev) => (prev ? { ...prev, image: rawDataUrl } : null));
+        showNotification('Photo uploaded.');
+      };
+
+      img.src = rawDataUrl;
+    };
+
+    reader.readAsDataURL(file);
+  };
+
   const activeNotification = notification || statusNotification;
+  const pendingCount = adminRequests.filter((r) => r.status === 'pending').length;
 
 
   return (
@@ -156,6 +226,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
             onClick={() => setActiveTab('applications')}
             icon={<Inbox size={14} />}
             label={`Applications (${applications.length})`}
+          />
+          <TabButton
+            active={activeTab === 'approvals'}
+            onClick={() => setActiveTab('approvals')}
+            icon={<UserCheck size={14} />}
+            label={`Admin Approvals ${pendingCount > 0 ? `(${pendingCount} Pending)` : `(${adminRequests.length})`}`}
           />
           <TabButton
             active={activeTab === 'settings'}
@@ -582,6 +658,139 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
           </div>
         )}
 
+        {/* ======================= TAB: ADMIN APPROVALS ======================= */}
+        {activeTab === 'approvals' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <h2 className="font-display text-2xl font-bold text-[#c8f7d0] flex items-center gap-2">
+                  <UserCheck className="text-[#00ff41]" />
+                  <span>Admin Registration Approvals</span>
+                </h2>
+                <p className="text-xs text-[#6fae78] mt-1">
+                  Newly registered admin accounts require approval from the Head Administrator before login is granted.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  fetchAdminRequests();
+                  showNotification('Refreshed admin requests list.');
+                }}
+                disabled={isLoadingRequests}
+                className="flex items-center gap-1.5 rounded border border-[#123a17] bg-[#050705] px-3 py-1.5 text-xs text-[#c8f7d0] hover:border-[#00ff41] transition-colors"
+              >
+                <RefreshCw size={13} className={isLoadingRequests ? 'animate-spin' : ''} />
+                <span>Refresh Requests</span>
+              </button>
+            </div>
+
+            {adminRequests.length === 0 ? (
+              <div className="rounded-xl border border-[#123a17] bg-[#080d08] p-12 text-center text-xs text-[#6fae78] space-y-2">
+                <Clock size={28} className="mx-auto text-[#00ff41] opacity-60" />
+                <div className="font-bold text-sm text-[#c8f7d0]">No Admin Registration Requests</div>
+                <div>When candidates register via the "REGISTER ADMIN" tab, their requests will appear here for review.</div>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {adminRequests.map((req) => (
+                  <div
+                    key={req.username}
+                    className="rounded-xl border border-[#123a17] bg-[#080d08] p-5 transition-all hover:border-[#00ff41]/50 space-y-3"
+                  >
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2.5">
+                          <span className="font-bold text-base text-[#c8f7d0]">{req.username}</span>
+                          <span className="text-xs text-[#6fae78] font-mono">({req.username}@cipher.sjec.ac.in)</span>
+                          
+                          {/* Status Badge */}
+                          {(req.status === 'pending' || !req.status) && (
+                            <span className="flex items-center gap-1 rounded bg-[#ffd600]/20 border border-[#ffd600]/40 px-2 py-0.5 text-[11px] font-bold text-[#ffd600]">
+                              <Clock size={11} />
+                              <span>PENDING APPROVAL</span>
+                            </span>
+                          )}
+                          {req.status === 'approved' && (
+                            <span className="flex items-center gap-1 rounded bg-[#00ff41]/20 border border-[#00ff41]/40 px-2 py-0.5 text-[11px] font-bold text-[#00ff41]">
+                              <CheckCircle size={11} />
+                              <span>APPROVED</span>
+                            </span>
+                          )}
+                          {req.status === 'rejected' && (
+                            <span className="flex items-center gap-1 rounded bg-[#ff5f56]/20 border border-[#ff5f56]/40 px-2 py-0.5 text-[11px] font-bold text-[#ff5f56]">
+                              <XCircle size={11} />
+                              <span>REJECTED</span>
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-[#6fae78]">
+                          {req.registeredAt && `Registered: ${new Date(req.registeredAt).toLocaleString()}`}
+                          {req.approvedAt && ` • Approved: ${new Date(req.approvedAt).toLocaleString()}`}
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-2">
+                        {req.status !== 'approved' && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const res = await approveAdmin(req.username);
+                              if (res.success) {
+                                showNotification(`Approved admin access for "${req.username}".`);
+                              } else {
+                                showNotification(`Failed to approve: ${res.error}`);
+                              }
+                            }}
+                            className="flex items-center gap-1.5 rounded bg-[#00ff41] px-3 py-1.5 text-xs font-bold text-[#050705] hover:bg-[#00ff66] transition-colors"
+                          >
+                            <CheckCircle size={13} />
+                            <span>Approve</span>
+                          </button>
+                        )}
+
+                        {req.status !== 'rejected' && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const res = await rejectAdmin(req.username);
+                              if (res.success) {
+                                showNotification(`Rejected admin access for "${req.username}".`);
+                              } else {
+                                showNotification(`Failed to reject: ${res.error}`);
+                              }
+                            }}
+                            className="flex items-center gap-1.5 rounded border border-[#ff5f56]/60 px-3 py-1.5 text-xs text-[#ff5f56] hover:bg-[#ff5f56]/10 transition-colors"
+                          >
+                            <XCircle size={13} />
+                            <span>Reject</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (confirm(`Completely delete admin account "${req.username}"?`)) {
+                              await deleteAdmin(req.username);
+                              showNotification(`Deleted admin account "${req.username}".`);
+                            }
+                          }}
+                          className="rounded border border-[#123a17] p-1.5 text-[#6fae78] hover:text-[#ff5f56] hover:border-[#ff5f56]/60 transition-colors"
+                          title="Delete Account"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ======================= TAB: SETTINGS ======================= */}
         {activeTab === 'settings' && (
           <div className="max-w-2xl space-y-6">
@@ -797,13 +1006,55 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
               </div>
 
               <div>
-                <label className="block text-[#c8f7d0] mb-1">Photo URL / Path</label>
-                <input
-                  type="text"
-                  value={editingLeader.image}
-                  onChange={(e) => setEditingLeader({ ...editingLeader, image: e.target.value })}
-                  className="w-full rounded border border-[#123a17] bg-[#050705] p-2 text-[#c8f7d0]"
-                />
+                <label className="block text-[#c8f7d0] mb-1 font-semibold">Photo</label>
+                <div
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) handleLeaderPhotoUpload(file);
+                  }}
+                  className="flex items-center gap-4 rounded border border-[#123a17] bg-[#050705] p-3 transition-colors hover:border-[#00ff41]/50"
+                >
+                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-[#00ff41]/40 bg-[#080d08]">
+                    <img
+                      src={editingLeader.image}
+                      alt={editingLeader.name}
+                      className="h-full w-full object-cover object-top"
+                      onError={handleImageError}
+                    />
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 rounded bg-[#00ff41] px-3.5 py-1.5 text-xs font-bold text-[#050705] hover:bg-[#00ff66] transition-colors shadow-[0_0_10px_rgba(0,255,65,0.2)]">
+                        <Upload size={13} />
+                        <span>Upload Photo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleLeaderPhotoUpload(file);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                      {editingLeader.image && editingLeader.image !== '/leadership/president.webp' && (
+                        <button
+                          type="button"
+                          onClick={() => setEditingLeader({ ...editingLeader, image: '/leadership/president.webp' })}
+                          className="rounded border border-[#123a17] px-2.5 py-1.5 text-[11px] text-[#6fae78] hover:text-[#ff5f56] hover:border-[#ff5f56]/40 transition-colors"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-[#6fae78]">
+                      Click to choose an image from your computer (PNG, JPG, WebP)
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div>

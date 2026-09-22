@@ -11,7 +11,7 @@ import { supabase } from '../lib/supabase';
  * 3. Manages active CMS tabs and quick search filters.
  */
 
-export type CMSTab = 'events' | 'leadership' | 'archive' | 'applications' | 'settings';
+export type CMSTab = 'events' | 'leadership' | 'archive' | 'applications' | 'settings' | 'approvals';
 
 export function useAdminCMS() {
   const data = useData();

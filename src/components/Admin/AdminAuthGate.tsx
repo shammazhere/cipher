@@ -52,7 +52,7 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ onAuthenticated, o
 
       if (res.success) {
         soundEffects.playSuccess();
-        setSuccessMsg('Successfully registered');
+        setSuccessMsg(res.message || 'Registration submitted! Please wait for Head Admin approval before signing in.');
         setMode('signin');
         setPassword('');
         setConfirmPassword('');
@@ -255,6 +255,7 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ onAuthenticated, o
                   disabled={isAuthorizing}
                   className="w-full rounded-lg border border-[#123a17] bg-[#050705] px-4 py-2.5 text-xs text-[#c8f7d0] placeholder-[#2c7a3a] transition-all focus:border-[#00ff41] focus:outline-none focus:shadow-[0_0_15px_rgba(0,255,65,0.25)] disabled:opacity-50"
                 />
+                <p className="text-[10px] text-[#6fae78] pt-1">* Note: New registrations require approval by the Head Administrator before login is granted.</p>
               </div>
             )}
 

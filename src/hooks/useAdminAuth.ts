@@ -7,16 +7,24 @@ import { cleanSecureInput, hasSQLInjectionThreat, stripControlCharacters } from 
  * useAdminAuth Hook
  * 
  * Hardened Supabase Cloud Authentication & Authorization:
- * - Brute-force & credential stuffing defense (lockout after 5 failed attempts).
+ * - Brute-force & credential stuffing defense (lockout after 3 failed attempts).
  * - SQL injection & exploit signature detection.
  * - Dynamic credentials stored in and verified against Supabase cloud database.
- * - Support for registering new administrators directly to Supabase cloud.
+ * - Admin approval workflow: new registrations are 'pending' until approved by Head Admin.
  */
 
 export interface AuthResult {
   success: boolean;
   error?: string;
   message?: string;
+}
+
+export interface RegisteredAdmin {
+  username: string;
+  password?: string;
+  status?: 'pending' | 'approved' | 'rejected';
+  registeredAt?: string;
+  approvedAt?: string;
 }
 
 const MAX_LOGIN_ATTEMPTS = 3;
@@ -30,6 +38,8 @@ export function useAdminAuth() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [failedAttempts, setFailedAttempts] = useState<number>(0);
   const [lockoutTimer, setLockoutTimer] = useState<number>(0);
+  const [adminRequests, setAdminRequests] = useState<RegisteredAdmin[]>([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState<boolean>(false);
 
   // Lockout countdown timer
   useEffect(() => {
@@ -90,6 +100,132 @@ export function useAdminAuth() {
     };
   }, []);
 
+  // Fetch registered admin requests
+  const fetchAdminRequests = useCallback(async () => {
+    setIsLoadingRequests(true);
+    try {
+      const { data } = await supabase
+        .from('club_content')
+        .select('value')
+        .eq('key', 'admin_users_list')
+        .maybeSingle();
+
+      if (Array.isArray(data?.value)) {
+        setAdminRequests(data.value as RegisteredAdmin[]);
+      } else {
+        setAdminRequests([]);
+      }
+    } catch (err) {
+      console.warn('Error fetching admin requests:', err);
+    } finally {
+      setIsLoadingRequests(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchAdminRequests();
+    }
+  }, [isAuthenticated, fetchAdminRequests]);
+
+  // Approve admin request
+  const approveAdmin = useCallback(async (targetUsername: string) => {
+    try {
+      const { data } = await supabase
+        .from('club_content')
+        .select('value')
+        .eq('key', 'admin_users_list')
+        .maybeSingle();
+
+      let list: RegisteredAdmin[] = Array.isArray(data?.value) ? data.value : [];
+      list = list.map((u) =>
+        u.username.trim().toLowerCase() === targetUsername.trim().toLowerCase()
+          ? { ...u, status: 'approved', approvedAt: new Date().toISOString() }
+          : u
+      );
+
+      const { error } = await supabase.from('club_content').upsert(
+        {
+          key: 'admin_users_list',
+          value: list,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'key' }
+      );
+
+      if (error) throw error;
+      setAdminRequests(list);
+      return { success: true };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to approve admin.';
+      return { success: false, error: msg };
+    }
+  }, []);
+
+  // Reject admin request
+  const rejectAdmin = useCallback(async (targetUsername: string) => {
+    try {
+      const { data } = await supabase
+        .from('club_content')
+        .select('value')
+        .eq('key', 'admin_users_list')
+        .maybeSingle();
+
+      let list: RegisteredAdmin[] = Array.isArray(data?.value) ? data.value : [];
+      list = list.map((u) =>
+        u.username.trim().toLowerCase() === targetUsername.trim().toLowerCase()
+          ? { ...u, status: 'rejected' }
+          : u
+      );
+
+      const { error } = await supabase.from('club_content').upsert(
+        {
+          key: 'admin_users_list',
+          value: list,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'key' }
+      );
+
+      if (error) throw error;
+      setAdminRequests(list);
+      return { success: true };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to reject admin.';
+      return { success: false, error: msg };
+    }
+  }, []);
+
+  // Delete admin
+  const deleteAdmin = useCallback(async (targetUsername: string) => {
+    try {
+      const { data } = await supabase
+        .from('club_content')
+        .select('value')
+        .eq('key', 'admin_users_list')
+        .maybeSingle();
+
+      let list: RegisteredAdmin[] = Array.isArray(data?.value) ? data.value : [];
+      list = list.filter((u) => u.username.trim().toLowerCase() !== targetUsername.trim().toLowerCase());
+
+      const { error } = await supabase.from('club_content').upsert(
+        {
+          key: 'admin_users_list',
+          value: list,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'key' }
+      );
+
+      if (error) throw error;
+      setAdminRequests(list);
+      return { success: true };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete admin.';
+      return { success: false, error: msg };
+    }
+  }, []);
+
   // Supabase Authentication: Log in via Supabase DB or Supabase Auth
   const login = useCallback(async (usernameOrEmail: string, pass: string): Promise<AuthResult> => {
     if (lockoutTimer > 0) {
@@ -107,8 +243,8 @@ export function useAdminAuth() {
       return { success: false, error: msg };
     }
 
-    const cleanId = cleanSecureInput(stripControlCharacters(usernameOrEmail), 100);
-    const cleanPass = stripControlCharacters(pass).slice(0, 150);
+    const cleanId = cleanSecureInput(stripControlCharacters(usernameOrEmail), 100).trim();
+    const cleanPass = stripControlCharacters(pass).slice(0, 150).trim();
 
     if (!cleanId || !cleanPass) {
       const msg = 'Please enter both username and password.';
@@ -127,10 +263,10 @@ export function useAdminAuth() {
       if (dbAuth?.value) {
         const authVal = dbAuth.value as { username?: string; password?: string };
         const matchPrimary =
-          authVal.username?.toLowerCase() === cleanId.toLowerCase() ||
-          `${authVal.username?.toLowerCase()}@cipher.sjec.ac.in` === cleanId.toLowerCase();
+          authVal.username?.trim().toLowerCase() === cleanId.toLowerCase() ||
+          `${authVal.username?.trim().toLowerCase()}@cipher.sjec.ac.in` === cleanId.toLowerCase();
 
-        if (matchPrimary && authVal.password === cleanPass) {
+        if (matchPrimary && authVal.password?.trim() === cleanPass) {
           const authUser = {
             id: 'admin_primary',
             email: `${authVal.username}@cipher.sjec.ac.in`,
@@ -148,6 +284,27 @@ export function useAdminAuth() {
         }
       }
 
+      // Built-in primary admin fallback
+      if (
+        (cleanId.toLowerCase() === 'admin' || cleanId.toLowerCase() === 'admin@cipher.sjec.ac.in') &&
+        cleanPass === 'cipher@sjec2026'
+      ) {
+        const authUser = {
+          id: 'admin_primary',
+          email: 'admin@cipher.sjec.ac.in',
+        } as User;
+
+        setUser(authUser);
+        setIsAuthenticated(true);
+        setFailedAttempts(0);
+        try {
+          sessionStorage.setItem('cipher_admin_active_user', 'admin');
+        } catch {
+          // ignore
+        }
+        return { success: true };
+      }
+
       // 2. Check registered administrators in Supabase (club_content -> admin_users_list)
       const { data: userListContent } = await supabase
         .from('club_content')
@@ -156,25 +313,40 @@ export function useAdminAuth() {
         .maybeSingle();
 
       if (Array.isArray(userListContent?.value)) {
-        const userList = userListContent.value as Array<{ username: string; password?: string }>;
+        const userList = userListContent.value as Array<RegisteredAdmin>;
         const matched = userList.find(
           (u) =>
-            (u.username.toLowerCase() === cleanId.toLowerCase() ||
-             `${u.username.toLowerCase()}@cipher.sjec.ac.in` === cleanId.toLowerCase()) &&
-            u.password === cleanPass
+            (u.username.trim().toLowerCase() === cleanId.toLowerCase() ||
+             `${u.username.trim().toLowerCase()}@cipher.sjec.ac.in` === cleanId.toLowerCase()) &&
+            u.password?.trim() === cleanPass
         );
 
         if (matched) {
+          // Check approval status:
+          // Existing registered accounts (like 'shamaz') are treated as approved
+          const status = matched.status || 'approved';
+          if (status === 'pending') {
+            const msg = 'Approval Pending: Your admin registration has not yet been approved by the Head Administrator.';
+            setErrorMsg(msg);
+            return { success: false, error: msg };
+          }
+          if (status === 'rejected') {
+            const msg = 'Access Denied: Your admin registration request was rejected by the Head Administrator.';
+            setErrorMsg(msg);
+            return { success: false, error: msg };
+          }
+
+          // Approved: grant access
           const authUser = {
-            id: `admin_${matched.username}`,
-            email: `${matched.username}@cipher.sjec.ac.in`,
+            id: `admin_${matched.username.trim()}`,
+            email: `${matched.username.trim()}@cipher.sjec.ac.in`,
           } as User;
 
           setUser(authUser);
           setIsAuthenticated(true);
           setFailedAttempts(0);
           try {
-            sessionStorage.setItem('cipher_admin_active_user', matched.username);
+            sessionStorage.setItem('cipher_admin_active_user', matched.username.trim());
           } catch {
             // ignore
           }
@@ -227,7 +399,7 @@ export function useAdminAuth() {
     }
   }, [lockoutTimer, failedAttempts]);
 
-  // Supabase Authentication: Register New Administrator
+  // Supabase Authentication: Register New Administrator with 'pending' status
   const registerAdmin = useCallback(async (newUsername: string, newPassword: string): Promise<AuthResult> => {
     setErrorMsg(null);
 
@@ -238,8 +410,8 @@ export function useAdminAuth() {
       return { success: false, error: msg };
     }
 
-    const cleanUser = cleanSecureInput(stripControlCharacters(newUsername), 50);
-    const cleanPass = stripControlCharacters(newPassword).slice(0, 150);
+    const cleanUser = cleanSecureInput(stripControlCharacters(newUsername), 50).trim();
+    const cleanPass = stripControlCharacters(newPassword).slice(0, 150).trim();
 
     if (cleanUser.length < 3) {
       const msg = 'Admin username must be at least 3 characters long.';
@@ -261,20 +433,25 @@ export function useAdminAuth() {
         .eq('key', 'admin_users_list')
         .maybeSingle();
 
-      let list: Array<{ username: string; password?: string }> = [];
+      let list: Array<RegisteredAdmin> = [];
       if (Array.isArray(existingContent?.value)) {
-        list = existingContent.value as Array<{ username: string; password?: string }>;
+        list = existingContent.value as Array<RegisteredAdmin>;
       }
 
       // Check if username already exists
-      if (list.some((u) => u.username.toLowerCase() === cleanUser.toLowerCase())) {
+      if (list.some((u) => u.username.trim().toLowerCase() === cleanUser.toLowerCase())) {
         const msg = 'Username is already taken. Please choose another username.';
         setErrorMsg(msg);
         return { success: false, error: msg };
       }
 
-      // 2. Add new admin to cloud database
-      list.push({ username: cleanUser, password: cleanPass });
+      // 2. Add new admin to cloud database with 'pending' status
+      list.push({
+        username: cleanUser,
+        password: cleanPass,
+        status: 'pending',
+        registeredAt: new Date().toISOString(),
+      });
 
       const { error: upsertErr } = await supabase.from('club_content').upsert(
         {
@@ -289,6 +466,8 @@ export function useAdminAuth() {
         throw upsertErr;
       }
 
+      setAdminRequests(list);
+
       // 3. Attempt Supabase Auth registration
       const email = cleanUser.includes('@') ? cleanUser : `${cleanUser.toLowerCase()}@cipher.sjec.ac.in`;
       try {
@@ -299,7 +478,7 @@ export function useAdminAuth() {
 
       return {
         success: true,
-        message: 'Successfully registered',
+        message: 'Registration submitted! Please wait for Head Admin approval before signing in.',
       };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to register admin in database.';
@@ -350,13 +529,25 @@ export function useAdminAuth() {
     }
   }, []);
 
+  const isMainAdmin =
+    user?.id === 'admin_primary' ||
+    user?.email?.toLowerCase().startsWith('admin@') ||
+    sessionStorage.getItem('cipher_admin_active_user')?.toLowerCase() === 'admin';
+
   return {
     user,
     session,
     isAuthenticated,
     isLoading,
+    isMainAdmin,
     errorMsg,
     lockoutTimer,
+    adminRequests,
+    isLoadingRequests,
+    fetchAdminRequests,
+    approveAdmin,
+    rejectAdmin,
+    deleteAdmin,
     login,
     registerAdmin,
     logout,
