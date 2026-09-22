@@ -184,7 +184,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteLeader = (id: string) => {
     setLeadership((prev) => {
-      const next = prev.filter((l) => l.id !== id);
+      const next = prev.filter((l) => String(l.id).trim() !== String(id).trim());
       syncContentToSupabase('leadership', next);
       return next;
     });
@@ -203,7 +203,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Events methods
   const updateEvent = (id: string, updated: Partial<EventItem>) => {
     setEvents((prev) => {
-      const next = prev.map((ev) => (ev.id === id ? { ...ev, ...updated } : ev));
+      const next = prev.map((ev) => (String(ev.id).trim() === String(id).trim() ? { ...ev, ...updated } : ev));
       syncContentToSupabase('events', next);
       return next;
     });
@@ -219,7 +219,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteEvent = (id: string) => {
     setEvents((prev) => {
-      const next = prev.filter((ev) => ev.id !== id);
+      const next = prev.filter((ev) => String(ev.id).trim() !== String(id).trim());
       syncContentToSupabase('events', next);
       return next;
     });

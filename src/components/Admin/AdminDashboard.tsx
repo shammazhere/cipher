@@ -88,6 +88,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
   const [editingLeader, setEditingLeader] = useState<Leader | null>(null);
   const [editingActivity, setEditingActivity] = useState<ArchiveItem | null>(null);
   const [isNewActivity, setIsNewActivity] = useState<boolean>(false);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    type: 'event' | 'leader' | 'activity';
+    id: string;
+    name: string;
+  } | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
 
   const showNotification = (msg: string) => {
@@ -432,13 +437,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                     {/* Delete button */}
                     <button
                       type="button"
-                      onClick={() => {
-                        if (window.confirm(`Delete "${ev.title}"?`)) {
-                          deleteEvent(ev.id);
-                          showNotification('Event deleted.');
-                        }
-                      }}
-                      className="p-2 rounded border border-[#ff5f56]/30 bg-[#ff5f56]/10 text-[#ff5f56] hover:bg-[#ff5f56]/20"
+                      onClick={() => setDeleteTarget({ type: 'event', id: ev.id, name: ev.title })}
+                      className="p-2 rounded border border-[#ff5f56]/30 bg-[#ff5f56]/10 text-[#ff5f56] hover:bg-[#ff5f56]/20 transition-colors"
                       title="Delete Event"
                     >
                       <Trash2 size={14} />
@@ -552,13 +552,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
 
                     <button
                       type="button"
-                      onClick={() => {
-                        if (window.confirm(`Delete ${leader.name}?`)) {
-                          deleteLeader(leader.id);
-                          showNotification('Leader deleted.');
-                        }
-                      }}
-                      className="p-2 rounded border border-[#ff5f56]/30 bg-[#ff5f56]/10 text-[#ff5f56] hover:bg-[#ff5f56]/20"
+                      onClick={() => setDeleteTarget({ type: 'leader', id: leader.id, name: leader.name })}
+                      className="p-2 rounded border border-[#ff5f56]/30 bg-[#ff5f56]/10 text-[#ff5f56] hover:bg-[#ff5f56]/20 transition-colors"
                       title="Delete Leader"
                     >
                       <Trash2 size={14} />
@@ -658,13 +653,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (confirm(`Delete activity "${item.title}"?`)) {
-                          deleteActivity(item.id);
-                          showNotification('Activity deleted.');
-                        }
-                      }}
-                      className="p-1.5 text-[#ff5f56] hover:opacity-80 ml-0.5"
+                      onClick={() => setDeleteTarget({ type: 'activity', id: item.id, name: item.title })}
+                      className="p-1.5 text-[#ff5f56] hover:opacity-80 ml-0.5 transition-colors"
                       title="Delete Activity"
                     >
                       <Trash2 size={13} />
@@ -1291,6 +1281,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                 className="px-5 py-2 text-xs bg-[#00ff41] text-[#050705] font-bold rounded hover:bg-[#00ff66]"
               >
                 SAVE CHANGES
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ======================= CONFIRM DELETION MODAL ======================= */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-xl border border-[#ff5f56]/60 bg-[#080d08] p-6 space-y-4 shadow-[0_0_30px_rgba(255,95,86,0.25)]">
+            <div className="flex items-center gap-3 text-[#ff5f56]">
+              <Trash2 size={22} />
+              <h3 className="font-display text-lg font-bold">
+                Confirm Deletion
+              </h3>
+            </div>
+            <p className="text-xs text-[#c8f7d0] leading-relaxed">
+              Are you sure you want to permanently delete{" "}
+              <span className="font-bold text-[#ff5f56]">"{deleteTarget.name}"</span>?
+              This action will immediately remove it from the database and public website.
+            </p>
+            <div className="flex justify-end gap-3 pt-3 border-t border-[#123a17]">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="px-4 py-2 text-xs border border-[#123a17] rounded text-[#6fae78] hover:text-[#c8f7d0] transition-colors"
+              >
+                CANCEL
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (deleteTarget.type === 'event') {
+                    deleteEvent(deleteTarget.id);
+                    showNotification(`Event "${deleteTarget.name}" deleted.`);
+                  } else if (deleteTarget.type === 'leader') {
+                    deleteLeader(deleteTarget.id);
+                    showNotification(`Leader "${deleteTarget.name}" deleted.`);
+                  } else if (deleteTarget.type === 'activity') {
+                    deleteActivity(deleteTarget.id);
+                    showNotification(`Activity "${deleteTarget.name}" deleted.`);
+                  }
+                  setDeleteTarget(null);
+                }}
+                className="px-5 py-2 text-xs bg-[#ff5f56] text-white font-bold rounded hover:bg-[#ff3b30] transition-colors shadow-[0_0_10px_rgba(255,95,86,0.3)]"
+              >
+                YES, DELETE
               </button>
             </div>
           </div>
