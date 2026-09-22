@@ -19,36 +19,36 @@ const LEADERS: LeaderData[] = [
     role: 'President',
     name: 'Elston Herold Pereira',
     photo: '/leadership/president.webp',
-    github: '#',
-    linkedin: '#',
+    github: 'https://github.com',
+    linkedin: 'https://linkedin.com',
   },
   {
     role: 'Vice President',
     name: 'Raynell Lewis',
     photo: '/leadership/vice-president.webp',
-    github: '#',
-    linkedin: '#',
+    github: 'https://github.com',
+    linkedin: 'https://linkedin.com',
   },
   {
     role: 'Secretary',
     name: 'Chaitra R M',
     photo: '/leadership/secretary.webp',
-    github: '#',
-    linkedin: '#',
+    github: 'https://github.com',
+    linkedin: 'https://linkedin.com',
   },
   {
     role: 'Treasurer',
     name: 'Nazmin Ziya',
     photo: '/leadership/treasurer.webp',
-    github: '#',
-    linkedin: '#',
+    github: 'https://github.com',
+    linkedin: 'https://linkedin.com',
   },
   {
     role: 'Joint Treasurer',
     name: 'Jeslin Ninora',
     photo: '/leadership/joint-treasurer.webp',
-    github: '#',
-    linkedin: '#',
+    github: 'https://github.com',
+    linkedin: 'https://linkedin.com',
   },
 ];
 
@@ -118,7 +118,7 @@ export const LeadershipSection: React.FC = () => {
             onWheel={handleInteraction}
             onPointerDown={handleInteraction}
             onTouchMove={handleInteraction}
-            className="no-scrollbar flex w-full cursor-grab gap-5 overflow-x-auto overscroll-x-contain"
+            className="no-scrollbar flex w-full cursor-grab gap-5 overflow-x-auto overscroll-x-contain py-2"
           >
             {loopList.map((leader, idx) => (
               <div
@@ -153,9 +153,9 @@ export const LeadershipSection: React.FC = () => {
                   <span className="font-mono text-xs uppercase tracking-widest text-[var(--matrix)]">
                     {leader.role}
                   </span>
-                  <span className="font-display text-lg leading-tight text-foreground">
+                  <h3 className="font-display text-lg leading-tight text-foreground">
                     {leader.name}
-                  </span>
+                  </h3>
                   <div className="mt-2 flex items-center gap-3">
                     <a
                       href={leader.github || '#'}
