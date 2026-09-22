@@ -23,15 +23,20 @@ export function useSmoothScroll({ disabled = false, isModalOpen = false }: UseSm
   useEffect(() => {
     if (disabled) return;
 
+    // Detect if device is primary touch-based (mobile/tablet)
+    const isTouch = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+
     // Initialize Lenis with tuned momentum physics
     const lenis = new Lenis({
-      duration: 1.2,
+      duration: isTouch ? 1.0 : 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       gestureOrientation: 'vertical',
       smoothWheel: true,
       wheelMultiplier: 1.0,
-      touchMultiplier: 1.8,
+      touchMultiplier: isTouch ? 1.0 : 1.5,
+      syncTouch: true,
+      syncTouchLerp: 0.1,
       infinite: false,
     });
 

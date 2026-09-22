@@ -138,7 +138,7 @@ export const TopographyCanvas: React.FC<TopographyCanvasProps> = ({
       const rect = container.getBoundingClientRect();
       width = rect.width || window.innerWidth;
       height = rect.height || window.innerHeight;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
       canvas.style.width = `${width}px`;
@@ -148,17 +148,21 @@ export const TopographyCanvas: React.FC<TopographyCanvasProps> = ({
 
     const buildGrid = () => {
       columns = [];
-      const cols = Math.ceil((width + 200) / xGap);
-      const rows = Math.ceil((height + 30) / yGap);
-      const startX = (width - xGap * cols) / 2;
-      const startY = (height - yGap * rows) / 2;
+      const isMobile = width < 768;
+      const currentXGap = isMobile ? Math.max(xGap * 1.8, 22) : xGap;
+      const currentYGap = isMobile ? Math.max(yGap * 1.25, 44) : yGap;
+
+      const cols = Math.ceil((width + 160) / currentXGap);
+      const rows = Math.ceil((height + 30) / currentYGap);
+      const startX = (width - currentXGap * cols) / 2;
+      const startY = (height - currentYGap * rows) / 2;
 
       for (let c = 0; c <= cols; c++) {
         const col: WavePoint[] = [];
         for (let r = 0; r <= rows; r++) {
           col.push({
-            x: startX + xGap * c,
-            y: startY + yGap * r,
+            x: startX + currentXGap * c,
+            y: startY + currentYGap * r,
             wave: { x: 0, y: 0 },
           });
         }
@@ -167,8 +171,12 @@ export const TopographyCanvas: React.FC<TopographyCanvasProps> = ({
     };
 
     const updateWaves = (time: number) => {
-      columns.forEach((col) => {
-        col.forEach((pt) => {
+      const numCols = columns.length;
+      for (let c = 0; c < numCols; c++) {
+        const col = columns[c];
+        const numRows = col.length;
+        for (let r = 0; r < numRows; r++) {
+          const pt = col[r];
           const n =
             12 *
             noise.perlin2(
@@ -177,14 +185,9 @@ export const TopographyCanvas: React.FC<TopographyCanvasProps> = ({
             );
           pt.wave.x = Math.cos(n) * waveAmpX;
           pt.wave.y = Math.sin(n) * waveAmpY;
-        });
-      });
+        }
+      }
     };
-
-    const projectPoint = (pt: WavePoint) => ({
-      x: Math.round(10 * (pt.x + pt.wave.x)) / 10,
-      y: Math.round(10 * (pt.y + pt.wave.y)) / 10,
-    });
 
     const draw = () => {
       ctx.clearRect(0, 0, width, height);
@@ -196,48 +199,64 @@ export const TopographyCanvas: React.FC<TopographyCanvasProps> = ({
       ctx.strokeStyle = lineColor;
       ctx.lineWidth = 1;
 
-      columns.forEach((col) => {
-        let first = projectPoint(col[0]);
-        ctx.moveTo(first.x, first.y);
+      const numCols = columns.length;
+      for (let c = 0; c < numCols; c++) {
+        const col = columns[c];
+        const numRows = col.length;
+        if (numRows === 0) continue;
 
-        col.forEach((pt, idx) => {
-          const isLast = idx === col.length - 1;
-          const next = projectPoint(col[idx + 1] || col[col.length - 1]);
-          first = projectPoint(pt);
-          ctx.lineTo(first.x, first.y);
-          if (isLast) ctx.moveTo(next.x, next.y);
-        });
-      });
+        let firstX = col[0].x + col[0].wave.x;
+        let firstY = col[0].y + col[0].wave.y;
+        ctx.moveTo(firstX, firstY);
+
+        for (let r = 0; r < numRows; r++) {
+          const pt = col[r];
+          const px = pt.x + pt.wave.x;
+          const py = pt.y + pt.wave.y;
+          ctx.lineTo(px, py);
+        }
+      }
 
       ctx.stroke();
     };
 
     let animId = 0;
+    let isTabActive = !document.hidden;
+
     resize();
     buildGrid();
+
+    const render = (time: number) => {
+      if (isTabActive) {
+        updateWaves(time);
+        draw();
+      }
+      animId = requestAnimationFrame(render);
+    };
 
     if (prefersReducedMotion) {
       updateWaves(0);
       draw();
     } else {
-      const render = (time: number) => {
-        updateWaves(time);
-        draw();
-        animId = requestAnimationFrame(render);
-      };
       animId = requestAnimationFrame(render);
     }
+
+    const onVisibilityChange = () => {
+      isTabActive = !document.hidden;
+    };
 
     const onResize = () => {
       resize();
       buildGrid();
     };
 
-    window.addEventListener('resize', onResize);
+    window.addEventListener('resize', onResize, { passive: true });
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', onResize);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [lineColor, backgroundColor, waveSpeedX, waveSpeedY, waveAmpX, waveAmpY, xGap, yGap]);
 
