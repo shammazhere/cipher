@@ -51,27 +51,27 @@
   },
   {
     "id": "content-head",
-    "name": "Content Head",
+    "name": "Parthipan J",
     "role": "Content Head",
     "image": "/leadership/content-head.webp",
     "bio": "Spearheading departmental publications, technical write-ups, event reporting, and social communications for CIPHER.",
     "github": "https://github.com",
     "linkedin": "https://linkedin.com",
-    "email": "content.cip@sjec.ac.in"
+    "email": "parthipan.cip@sjec.ac.in"
   },
   {
     "id": "cultural-head",
-    "name": "Cultural Head",
+    "name": "Shamitha KV",
     "role": "Cultural Head",
     "image": "/leadership/cultural-head.webp",
-    "bio": "Directing cultural engagements, branch entry programmes (Lumière), creative performances, and community celebrations.",
+    "bio": "Directing cultural engagements, branch entry programmes (Lumi\u00e8re), creative performances, and community celebrations.",
     "github": "https://github.com",
     "linkedin": "https://linkedin.com",
     "email": "cultural.cip@sjec.ac.in"
   },
   {
     "id": "design-head",
-    "name": "Design Head",
+    "name": "Himansh Ullal",
     "role": "Design Head",
     "image": "/leadership/design-head.webp",
     "bio": "Overseeing visual identity, UI/UX design systems, event posters, digital branding, and stage aesthetics.",
@@ -81,7 +81,7 @@
   },
   {
     "id": "operations-head",
-    "name": "Operations Head",
+    "name": "Ruben Saldana",
     "role": "Operations Head",
     "image": "/leadership/operations-head.webp",
     "bio": "Managing venue logistics, technical lab infrastructure, workshop setup, and operational coordination during events.",
