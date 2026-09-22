@@ -1,14 +1,13 @@
 import { useState, useCallback } from 'react';
 import { useData } from '../context/DataContext';
+import { supabase } from '../lib/supabase';
 
 /**
  * useAdminCMS Hook
  * 
- * Non-technical explanation:
- * Provides advanced content management utilities for non-developer club leads:
- * 1. Exports current events, team members, and archive as standard downloadable JSON files
- *    so non-technical students can save backups or update the repo directly.
- * 2. Imports JSON files directly from the user's computer with schema validation.
+ * Connected to Supabase Cloud Database:
+ * 1. Exports current events, team members, and archive as standard downloadable JSON files.
+ * 2. Imports JSON files directly into Supabase cloud database with zero localStorage.
  * 3. Manages active CMS tabs and quick search filters.
  */
 
@@ -64,11 +63,11 @@ export function useAdminCMS() {
   }, [data, notify]);
 
   /**
-   * Import JSON file and load into state
+   * Import JSON file and upload directly to Supabase
    */
   const importJSON = useCallback((file: File, type: 'events' | 'leadership' | 'archive') => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const text = e.target?.result as string;
         const parsed = JSON.parse(text);
@@ -78,21 +77,25 @@ export function useAdminCMS() {
           return;
         }
 
-        if (type === 'events') {
-          // Re-load events
-          localStorage.setItem('cipher_events', JSON.stringify(parsed));
-          window.location.reload();
-        } else if (type === 'leadership') {
-          localStorage.setItem('cipher_leadership', JSON.stringify(parsed));
-          window.location.reload();
-        } else if (type === 'archive') {
-          localStorage.setItem('cipher_archive', JSON.stringify(parsed));
-          window.location.reload();
+        // Upload directly to Supabase cloud database
+        const { error } = await supabase.from('club_content').upsert(
+          {
+            key: type,
+            value: parsed,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'key' }
+        );
+
+        if (error) {
+          throw error;
         }
 
-        notify(`Imported ${parsed.length} items successfully.`);
-      } catch (err) {
-        alert('Error parsing JSON file. Please check file format.');
+        notify(`Imported ${parsed.length} items directly to Supabase successfully.`);
+        window.location.reload();
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Error importing JSON to Supabase.';
+        alert(msg);
       }
     };
     reader.readAsText(file);

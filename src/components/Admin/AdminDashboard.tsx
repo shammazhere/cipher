@@ -5,11 +5,8 @@ import {
   Edit2,
   Trash2,
   Plus,
-  RotateCcw,
   Eye,
   Check,
-  Upload,
-  Download,
   Calendar,
   Users,
   Archive,
@@ -18,9 +15,11 @@ import {
   X,
   ExternalLink,
   LogOut,
+  RefreshCw,
 } from 'lucide-react';
 import { EventItem, Leader, ArchiveItem, MemberApplication } from '../../types';
 import { useAdminCMS } from '../../hooks/useAdminCMS';
+import { useAdminAuth } from '../../hooks/useAdminAuth';
 import { handleImageError } from '../../utils/imageFallback';
 
 /**
@@ -44,6 +43,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
     archive,
     siteConfig,
     applications,
+    isSupabaseConnected,
+    isLoadingApplications,
+    refreshApplications,
     updateEvent,
     addEvent,
     deleteEvent,
@@ -66,10 +68,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
     importJSON,
   } = useAdminCMS();
 
+  const { user } = useAdminAuth();
+
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
   const [editingLeader, setEditingLeader] = useState<Leader | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const showNotification = (msg: string) => {
     setNotification(msg);
@@ -78,12 +81,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
 
   const activeNotification = notification || statusNotification;
 
-  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const type = activeTab === 'leadership' ? 'leadership' : activeTab === 'archive' ? 'archive' : 'events';
-    importJSON(file, type);
-  };
 
   return (
     <div className="min-h-screen bg-[#050705] text-[#c8f7d0] font-mono pb-20">
@@ -101,52 +98,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Hidden file input for JSON import */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImportFile}
-              accept=".json"
-              className="hidden"
-            />
-
-            {/* Export JSON Button for Non-Developers */}
-            <button
-              type="button"
-              onClick={() => exportJSON(activeTab === 'events' ? 'events' : activeTab === 'leadership' ? 'leadership' : activeTab === 'archive' ? 'archive' : 'all')}
-              className="flex items-center gap-1.5 rounded border border-[#00ff41]/50 bg-[#00ff41]/10 px-3 py-1.5 text-xs text-[#00ff41] hover:bg-[#00ff41]/20 transition-colors"
-              title="Download formatted JSON file ready to drop into src/data/"
-            >
-              <Download size={13} />
-              <span>EXPORT JSON</span>
-            </button>
-
-            {/* Import JSON Button */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 rounded border border-[#123a17] bg-[#080d08] px-3 py-1.5 text-xs text-[#6fae78] hover:border-[#00ff41] hover:text-[#00ff41] transition-colors"
-              title="Import a JSON file from your computer"
-            >
-              <Upload size={13} />
-              <span>IMPORT JSON</span>
-            </button>
-
-            {/* Reset to defaults */}
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm('Reset all changes and restore original default data?')) {
-                  resetToDefaults();
-                  showNotification('Reset successfully to default data.');
-                }
-              }}
-              className="flex items-center gap-1.5 rounded border border-[#ff5f56]/40 bg-[#ff5f56]/10 px-3 py-1.5 text-xs text-[#ff5f56] hover:bg-[#ff5f56]/20 transition-colors"
-            >
-              <RotateCcw size={13} />
-              <span>RESET</span>
-            </button>
-
             {/* Return to public site */}
             <button
               type="button"
@@ -156,6 +107,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
               <Eye size={13} />
               <span>PUBLIC SITE</span>
             </button>
+
+            {/* Authenticated Admin Identity */}
+            {user?.email && (
+              <div className="hidden md:flex items-center gap-1.5 rounded border border-[#123a17] bg-[#050705] px-2.5 py-1 text-[11px] font-mono text-[#6fae78]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#00ff41]" />
+                <span className="text-[#c8f7d0]">{user.email}</span>
+              </div>
+            )}
 
             {/* Logout button */}
             {onLogout && (
@@ -546,13 +505,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
         {/* ======================= TAB: APPLICATIONS ======================= */}
         {activeTab === 'applications' && (
           <div className="space-y-6">
-            <div>
-              <h2 className="font-display text-2xl font-bold text-[#c8f7d0]">
-                Student Membership Applications
-              </h2>
-              <p className="text-xs text-[#6fae78] mt-1">
-                Submissions received through the secured Join Form.
-              </p>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h2 className="font-display text-2xl font-bold text-[#c8f7d0]">
+                  Student Membership Applications
+                </h2>
+                <p className="text-xs text-[#6fae78] mt-1">
+                  Live submissions synced directly with Supabase cloud database.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  await refreshApplications();
+                  showNotification('Applications refreshed from Supabase.');
+                }}
+                disabled={isLoadingApplications}
+                className="flex items-center gap-1.5 rounded-lg border border-[#00ff41]/40 bg-[#00ff41]/10 px-3 py-1.5 font-mono text-xs text-[#00ff41] hover:bg-[#00ff41]/20 transition-all disabled:opacity-50"
+              >
+                <RefreshCw size={13} className={isLoadingApplications ? 'animate-spin' : ''} />
+                <span>REFRESH DB</span>
+              </button>
             </div>
 
             {applications.length === 0 ? (
