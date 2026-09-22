@@ -5,6 +5,7 @@ import { EventGalleryModal, GalleryModalData } from '../Modals/EventGalleryModal
 import { SectionHeader } from '../UI/SectionHeader';
 import { useData } from '../../context/DataContext';
 import defaultArchive from '../../data/archive.json';
+import { EventItem } from '../../types';
 
 /**
  * Events & Workshops Section Component with 3D Flip Cards
@@ -158,10 +159,27 @@ const EventFlipCard: React.FC<{
   );
 };
 
+const formatEventToGalleryData = (event: EventItem): GalleryModalData => ({
+  slug: event.id || (event.tag ? event.tag.toUpperCase().replace(/\s+/g, '_') : 'EVENT'),
+  tag: event.tag || 'EVENT',
+  title: event.title,
+  dateStr: `${event.fullDate || event.date || 'UPCOMING'} · ${event.venue || 'Kalam Auditorium'}`,
+  cardDateBadge: event.date || 'UPCOMING',
+  cardSubtitle: event.subtitle || event.venue || 'CIPHER Department',
+  paragraphs: (event.detailedReport && event.detailedReport.length > 0)
+    ? event.detailedReport
+    : [event.cardSummary || 'Technical event and workshop organized by CIPHER.'],
+  images: event.images && event.images.length > 0 ? event.images : ['/lumiere/website_photo_1.webp'],
+});
+
 export const EventsSection: React.FC = () => {
   const [activeModalData, setActiveModalData] = useState<GalleryModalData | null>(null);
-  const { archive } = useData();
+  const { archive, events } = useData();
   const activities = (archive && archive.length > 0) ? archive : defaultArchive;
+
+  const displayEvents: GalleryModalData[] = (events && events.length > 0)
+    ? events.map(formatEventToGalleryData)
+    : FEATURED_EVENTS;
 
   return (
     <section id="events" className="relative border-t border-[var(--border)] py-24">
@@ -169,11 +187,11 @@ export const EventsSection: React.FC = () => {
         {/* Header */}
         <SectionHeader label="activities" title="Events & Workshops" />
 
-        {/* 2 Flagship Cards */}
-        <div className="mt-12 grid gap-6 md:grid-cols-2">
-          {FEATURED_EVENTS.map((event, idx) => (
+        {/* Flagship Event & Workshop Cards */}
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+          {displayEvents.map((event, idx) => (
             <motion.div
-              key={event.title}
+              key={`${event.slug || event.title}-${idx}`}
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
