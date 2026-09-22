@@ -158,7 +158,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
       <header className="sticky top-0 z-40 border-b border-[#123a17] bg-[#080d08]/90 backdrop-blur-md px-6 py-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-3 w-3 rounded-full bg-[#00ff41] animate-ping" />
             <h1 className="font-display text-xl font-bold tracking-wider text-[#00ff41] text-glow">
               CIPHER // ADMIN CMS
             </h1>
@@ -181,7 +180,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
             {/* Authenticated Admin Identity */}
             {user?.email && (
               <div className="hidden md:flex items-center gap-1.5 rounded border border-[#123a17] bg-[#050705] px-2.5 py-1 text-[11px] font-mono text-[#6fae78]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#00ff41]" />
                 <span className="text-[#c8f7d0]">{user.email}</span>
               </div>
             )}
