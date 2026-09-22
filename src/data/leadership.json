@@ -48,5 +48,45 @@
     "github": "https://github.com",
     "linkedin": "https://linkedin.com",
     "email": "jeslin.cip@sjec.ac.in"
+  },
+  {
+    "id": "content-head",
+    "name": "Content Head",
+    "role": "Content Head",
+    "image": "/leadership/content-head.webp",
+    "bio": "Spearheading departmental publications, technical write-ups, event reporting, and social communications for CIPHER.",
+    "github": "https://github.com",
+    "linkedin": "https://linkedin.com",
+    "email": "content.cip@sjec.ac.in"
+  },
+  {
+    "id": "cultural-head",
+    "name": "Cultural Head",
+    "role": "Cultural Head",
+    "image": "/leadership/cultural-head.webp",
+    "bio": "Directing cultural engagements, branch entry programmes (Lumière), creative performances, and community celebrations.",
+    "github": "https://github.com",
+    "linkedin": "https://linkedin.com",
+    "email": "cultural.cip@sjec.ac.in"
+  },
+  {
+    "id": "design-head",
+    "name": "Design Head",
+    "role": "Design Head",
+    "image": "/leadership/design-head.webp",
+    "bio": "Overseeing visual identity, UI/UX design systems, event posters, digital branding, and stage aesthetics.",
+    "github": "https://github.com",
+    "linkedin": "https://linkedin.com",
+    "email": "design.cip@sjec.ac.in"
+  },
+  {
+    "id": "operations-head",
+    "name": "Operations Head",
+    "role": "Operations Head",
+    "image": "/leadership/operations-head.webp",
+    "bio": "Managing venue logistics, technical lab infrastructure, workshop setup, and operational coordination during events.",
+    "github": "https://github.com",
+    "linkedin": "https://linkedin.com",
+    "email": "operations.cip@sjec.ac.in"
   }
 ]

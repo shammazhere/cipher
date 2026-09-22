@@ -1,65 +1,44 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Github, Linkedin } from 'lucide-react';
 import { LeaderModal, LeaderData } from '../Modals/LeaderModal';
 import { SectionHeader } from '../UI/SectionHeader';
+import { useData } from '../../context/DataContext';
+import defaultLeadership from '../../data/leadership.json';
 
 /**
  * Leadership Section Component
  * 
  * Non-technical explanation:
- * Displays the CIPHER leadership council in a buttery-smooth auto-scrolling
- * horizontal loop. Features grayscale portrait cards that transition to color
+ * Displays the CIPHER leadership council and Core Team heads in a buttery-smooth
+ * auto-scrolling horizontal loop. Features grayscale portrait cards that transition to color
  * on hover, pause smoothly during touch/scroll interaction, and open a focused
  * dossier modal on click.
  */
 
-const LEADERS: LeaderData[] = [
-  {
-    role: 'President',
-    name: 'Elston Herold Pereira',
-    photo: '/leadership/president.webp',
-    github: 'https://github.com',
-    linkedin: 'https://linkedin.com',
-  },
-  {
-    role: 'Vice President',
-    name: 'Raynell Lewis',
-    photo: '/leadership/vice-president.webp',
-    github: 'https://github.com',
-    linkedin: 'https://linkedin.com',
-  },
-  {
-    role: 'Secretary',
-    name: 'Chaitra R M',
-    photo: '/leadership/secretary.webp',
-    github: 'https://github.com',
-    linkedin: 'https://linkedin.com',
-  },
-  {
-    role: 'Treasurer',
-    name: 'Nazmin Ziya',
-    photo: '/leadership/treasurer.webp',
-    github: 'https://github.com',
-    linkedin: 'https://linkedin.com',
-  },
-  {
-    role: 'Joint Treasurer',
-    name: 'Jeslin Ninora',
-    photo: '/leadership/joint-treasurer.webp',
-    github: 'https://github.com',
-    linkedin: 'https://linkedin.com',
-  },
-];
-
 export const LeadershipSection: React.FC = () => {
+  const { leadership: contextLeadership } = useData();
   const [selectedLeader, setSelectedLeader] = useState<LeaderData | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isInteracting = useRef<boolean>(false);
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const leaders: LeaderData[] = useMemo(() => {
+    const raw = (contextLeadership && contextLeadership.length > 0) ? contextLeadership : defaultLeadership;
+    return raw.map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      role: item.role,
+      photo: item.image || item.photo,
+      bio: item.bio,
+      github: item.github,
+      linkedin: item.linkedin,
+      email: item.email,
+    }));
+  }, [contextLeadership]);
+
   // Repeated list for continuous seamless infinite loop
-  const loopList = [...LEADERS, ...LEADERS];
+  const loopList = useMemo(() => [...leaders, ...leaders], [leaders]);
 
   // Auto-scroll loop with Viewport IntersectionObserver
   useEffect(() => {
