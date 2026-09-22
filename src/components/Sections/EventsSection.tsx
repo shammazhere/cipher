@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { Calendar, ArrowUpRight } from 'lucide-react';
 import { EventGalleryModal, GalleryModalData } from '../Modals/EventGalleryModal';
 import { SectionHeader } from '../UI/SectionHeader';
+import { useData } from '../../context/DataContext';
+import defaultArchive from '../../data/archive.json';
 
 /**
  * Events & Workshops Section Component with 3D Flip Cards
@@ -61,26 +63,6 @@ const FEATURED_EVENTS: GalleryModalData[] = [
       '/promptops/website_photo_8.webp',
     ],
   },
-];
-
-const ARCHIVE_ACTIVITIES = [
-  { title: 'Full Stack Development', href: 'https://sjec.ac.in/cipher/activity/full-stack-development' },
-  { title: 'Flutter App Development', href: 'https://sjec.ac.in/cipher/activity/flutter-app-development' },
-  { title: 'Data Analytics with Python', href: 'https://sjec.ac.in/cipher/activity/data-analytics-python' },
-  { title: 'Introduction to Machine Learning', href: 'https://sjec.ac.in/cipher/activity/intro-to-machine-learning' },
-  { title: 'Project Exhibition and Competition', href: 'https://sjec.ac.in/cipher/activity/project-exhibition' },
-  { title: 'Hands-on Session on LaTeX', href: 'https://sjec.ac.in/cipher/activity/hands-on-latex' },
-  { title: 'Git & GitHub Workshop', href: 'https://sjec.ac.in/cipher/activity/git-github-workshop' },
-  { title: 'Hands-on Session on Blender', href: 'https://sjec.ac.in/cipher/activity/hands-on-blender' },
-  { title: 'Session on Angular', href: 'https://sjec.ac.in/cipher/activity/session-on-angular' },
-  { title: 'UI/UX Design with Figma', href: 'https://sjec.ac.in/cipher/activity/ui-ux-design-figma' },
-  { title: 'Industrial Visit to Infosys', href: 'https://sjec.ac.in/cipher/activity/industrial-visit-infosys' },
-  { title: 'Web Development Bootcamp', href: 'https://sjec.ac.in/cipher/activity/web-dev-bootcamp' },
-  { title: 'Cybersecurity Essentials', href: 'https://sjec.ac.in/cipher/activity/cybersecurity-essentials' },
-  { title: 'Cloud Computing Fundamentals', href: 'https://sjec.ac.in/cipher/activity/cloud-computing' },
-  { title: 'Star UML', href: 'https://sjec.ac.in/cipher/activity/star-uml' },
-  { title: 'Generative AI: Custom Solutions using OpenAI', href: 'https://sjec.ac.in/cipher/activity/genai-custom-solutions' },
-  { title: 'React.js and Node.js Workshop', href: 'https://sjec.ac.in/cipher/activity/reactjs-and-nodejs-workshop' },
 ];
 
 const EventFlipCard: React.FC<{
@@ -178,6 +160,8 @@ const EventFlipCard: React.FC<{
 
 export const EventsSection: React.FC = () => {
   const [activeModalData, setActiveModalData] = useState<GalleryModalData | null>(null);
+  const { archive } = useData();
+  const activities = (archive && archive.length > 0) ? archive : defaultArchive;
 
   return (
     <section id="events" className="relative border-t border-[var(--border)] py-24">
@@ -213,36 +197,39 @@ export const EventsSection: React.FC = () => {
           </p>
 
           <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {ARCHIVE_ACTIVITIES.map((activity, idx) => (
-              <motion.div
-                key={`${activity.title}-${idx}`}
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: (idx % 3) * 0.05 }}
-              >
-                <a
-                  href={activity.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-cursor="lens"
-                  className="group flex h-full items-start justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)]/50 p-4 transition-all duration-300 hover:border-[var(--matrix)] hover:box-glow"
+            {activities.map((activity, idx) => {
+              const linkHref = activity.href || 'https://sjec.ac.in/cipher';
+              return (
+                <motion.div
+                  key={`${activity.id || activity.title}-${idx}`}
+                  initial={{ opacity: 0, y: 15 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: (idx % 3) * 0.05 }}
                 >
-                  <div className="flex items-start gap-3">
-                    <span className="font-mono text-[10px] leading-5 text-[var(--matrix)]">
-                      {String(idx + 1).padStart(2, '0')}
-                    </span>
-                    <h3 className="font-mono text-sm leading-snug text-foreground transition-colors group-hover:text-[var(--matrix)]">
-                      {activity.title}
-                    </h3>
-                  </div>
-                  <ArrowUpRight
-                    size={15}
-                    className="mt-0.5 shrink-0 text-muted-foreground transition-colors group-hover:text-[var(--matrix)]"
-                  />
-                </a>
-              </motion.div>
-            ))}
+                  <a
+                    href={linkHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-cursor="lens"
+                    className="group flex h-full items-start justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)]/50 p-4 transition-all duration-300 hover:border-[var(--matrix)] hover:box-glow"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="font-mono text-[10px] leading-5 text-[var(--matrix)]">
+                        {String(idx + 1).padStart(2, '0')}
+                      </span>
+                      <h3 className="font-mono text-sm leading-snug text-foreground transition-colors group-hover:text-[var(--matrix)]">
+                        {activity.title}
+                      </h3>
+                    </div>
+                    <ArrowUpRight
+                      size={15}
+                      className="mt-0.5 shrink-0 text-muted-foreground transition-colors group-hover:text-[var(--matrix)]"
+                    />
+                  </a>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </div>
