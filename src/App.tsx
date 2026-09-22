@@ -39,8 +39,15 @@ const CyberModuleLoader: React.FC<{ label: string }> = ({ label }) => (
   </div>
 );
 
+const isAdminOnlyMode = Boolean(
+  import.meta.env.VITE_ADMIN_ONLY === 'true' ||
+  import.meta.env.VITE_IS_ADMIN === 'true' ||
+  (typeof window !== 'undefined' && window.location.hostname.startsWith('admin.'))
+);
+
 const checkIsAdminRoute = (): boolean => {
   try {
+    if (isAdminOnlyMode) return true;
     const hash = window.location.hash.replace('#', '').replace(/^\/+/, '').toLowerCase();
     if (hash === 'admin') return true;
     const path = window.location.pathname.replace(/^\/+/, '').toLowerCase();
@@ -99,8 +106,15 @@ export const AppContent: React.FC = () => {
           <div className="mx-auto max-w-7xl">
             <div className="mb-6 flex items-center justify-between border-b border-[#123a17] pb-4">
               <a
-                href="#top"
-                onClick={() => setIsAdmin(false)}
+                href={isAdminOnlyMode && import.meta.env.VITE_PUBLIC_SITE_URL ? import.meta.env.VITE_PUBLIC_SITE_URL : '#top'}
+                onClick={(e) => {
+                  if (isAdminOnlyMode && import.meta.env.VITE_PUBLIC_SITE_URL) {
+                    return;
+                  }
+                  e.preventDefault();
+                  window.history.pushState(null, '', '/');
+                  setIsAdmin(false);
+                }}
                 className="font-mono text-xs uppercase tracking-wider text-[#00ff41] hover:underline"
               >
                 &larr; Return to CIPHER Portal
@@ -111,12 +125,26 @@ export const AppContent: React.FC = () => {
               {isAuthenticated ? (
                 <AdminDashboard
                   onLogout={handleAdminLogout}
-                  onBackToSite={() => setIsAdmin(false)}
+                  onBackToSite={() => {
+                    if (isAdminOnlyMode && import.meta.env.VITE_PUBLIC_SITE_URL) {
+                      window.location.href = import.meta.env.VITE_PUBLIC_SITE_URL;
+                    } else {
+                      window.history.pushState(null, '', '/');
+                      setIsAdmin(false);
+                    }
+                  }}
                 />
               ) : (
                 <AdminAuthGate
                   onAuthenticated={refreshAuth}
-                  onCancel={() => setIsAdmin(false)}
+                  onCancel={() => {
+                    if (isAdminOnlyMode && import.meta.env.VITE_PUBLIC_SITE_URL) {
+                      window.location.href = import.meta.env.VITE_PUBLIC_SITE_URL;
+                    } else {
+                      window.history.pushState(null, '', '/');
+                      setIsAdmin(false);
+                    }
+                  }}
                 />
               )}
             </Suspense>
