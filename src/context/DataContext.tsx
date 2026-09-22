@@ -1,19 +1,20 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import defaultLeadership from '../data/leadership.json';
 import defaultEvents from '../data/events.json';
 import defaultArchive from '../data/archive.json';
 import defaultDomains from '../data/domains.json';
 import defaultSiteConfig from '../data/siteConfig.json';
 import { Leader, EventItem, ArchiveItem, DomainItem, MemberApplication, SiteConfig } from '../types';
+import { supabase } from '../lib/supabase';
 
 /**
  * CIPHER Portal Data Context
  * 
- * Non-technical explanation:
- * This system loads the default data from the JSON files.
- * If an admin edits any text, adds a photo, or moves a section around,
- * those changes are saved in the browser's local memory (localStorage).
- * Anyone can click "Reset to Defaults" in the Admin panel to restore the original hackathon data.
+ * Connected to Supabase Cloud Database:
+ * - Applications are persisted directly to the 'applications' table in Supabase.
+ * - Real-time changes are synchronized so new submissions appear instantly.
+ * - CMS content (leadership, events, archive, domains, siteConfig) is synced to 'club_content'.
+ * - Zero localStorage dependencies for user data.
  */
 
 interface DataContextType {
@@ -23,6 +24,8 @@ interface DataContextType {
   domains: DomainItem[];
   siteConfig: SiteConfig;
   applications: MemberApplication[];
+  isSupabaseConnected: boolean;
+  isLoadingApplications: boolean;
   
   // Leadership management
   updateLeader: (id: string, updated: Partial<Leader>) => void;
@@ -46,187 +49,317 @@ interface DataContextType {
   updateSiteConfig: (updated: Partial<SiteConfig>) => void;
   
   // Member application submissions
-  addApplication: (app: Omit<MemberApplication, 'id' | 'submittedAt'>) => void;
-  deleteApplication: (id: string) => void;
+  addApplication: (app: Omit<MemberApplication, 'id' | 'submittedAt'>) => Promise<void>;
+  deleteApplication: (id: string) => Promise<void>;
+  refreshApplications: () => Promise<void>;
 
   // Reset all data back to original defaults
-  resetToDefaults: () => void;
+  resetToDefaults: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'cipher_sjec_portal_data_v2';
-
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load state from localStorage if available, or fall back to defaults
-  const [leadership, setLeadership] = useState<Leader[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY + '_leadership');
-      return saved ? JSON.parse(saved) : (defaultLeadership as Leader[]);
-    } catch {
-      return defaultLeadership as Leader[];
-    }
-  });
+  const [leadership, setLeadership] = useState<Leader[]>(defaultLeadership as Leader[]);
+  const [events, setEvents] = useState<EventItem[]>(defaultEvents as EventItem[]);
+  const [archive, setArchive] = useState<ArchiveItem[]>(defaultArchive as ArchiveItem[]);
+  const [domains, setDomains] = useState<DomainItem[]>(defaultDomains as DomainItem[]);
+  const [siteConfig, setSiteConfig] = useState<SiteConfig>(defaultSiteConfig as SiteConfig);
+  const [applications, setApplications] = useState<MemberApplication[]>([]);
+  const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean>(true);
+  const [isLoadingApplications, setIsLoadingApplications] = useState<boolean>(false);
 
-  const [events, setEvents] = useState<EventItem[]>(() => {
+  // Helper to sync CMS collections to Supabase club_content
+  const syncContentToSupabase = useCallback(async (key: string, value: unknown) => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY + '_events');
-      return saved ? JSON.parse(saved) : (defaultEvents as EventItem[]);
-    } catch {
-      return defaultEvents as EventItem[];
+      await supabase.from('club_content').upsert(
+        {
+          key,
+          value,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'key' }
+      );
+    } catch (err) {
+      console.warn(`[Supabase CMS Sync] Error syncing ${key}:`, err);
     }
-  });
+  }, []);
 
-  const [archive, setArchive] = useState<ArchiveItem[]>(() => {
+  // Fetch applications from Supabase
+  const refreshApplications = useCallback(async () => {
+    setIsLoadingApplications(true);
     try {
-      const saved = localStorage.getItem(STORAGE_KEY + '_archive');
-      return saved ? JSON.parse(saved) : (defaultArchive as ArchiveItem[]);
-    } catch {
-      return defaultArchive as ArchiveItem[];
-    }
-  });
+      const { data, error } = await supabase
+        .from('applications')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-  const [domains, setDomains] = useState<DomainItem[]>(() => {
+      if (error) {
+        console.warn('[Supabase] Applications fetch notice:', error.message);
+        setIsSupabaseConnected(false);
+        return;
+      }
+
+      setIsSupabaseConnected(true);
+      if (data) {
+        setApplications(
+          data.map((row) => ({
+            id: row.id,
+            name: row.name || 'Anonymous Operative',
+            email: row.email || '',
+            message: row.message || '',
+            usn: row.usn || '',
+            semester: row.semester || '',
+            domain: row.domain || 'General',
+            submittedAt: row.created_at
+              ? new Date(row.created_at).toLocaleString()
+              : new Date().toLocaleString(),
+          }))
+        );
+      }
+    } catch (err) {
+      console.warn('[Supabase] Could not query applications:', err);
+      setIsSupabaseConnected(false);
+    } finally {
+      setIsLoadingApplications(false);
+    }
+  }, []);
+
+  // Fetch CMS content from Supabase
+  const refreshCMSContent = useCallback(async () => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY + '_domains');
-      return saved ? JSON.parse(saved) : (defaultDomains as DomainItem[]);
-    } catch {
-      return defaultDomains as DomainItem[];
+      const { data, error } = await supabase.from('club_content').select('*');
+      if (!error && data && data.length > 0) {
+        data.forEach((row: { key: string; value: unknown }) => {
+          if (row.key === 'leadership' && Array.isArray(row.value)) setLeadership(row.value as Leader[]);
+          if (row.key === 'events' && Array.isArray(row.value)) setEvents(row.value as EventItem[]);
+          if (row.key === 'archive' && Array.isArray(row.value)) setArchive(row.value as ArchiveItem[]);
+          if (row.key === 'domains' && Array.isArray(row.value)) setDomains(row.value as DomainItem[]);
+          if (row.key === 'siteConfig' && row.value) setSiteConfig(row.value as SiteConfig);
+        });
+      }
+    } catch (err) {
+      console.warn('[Supabase] Club content sync notice:', err);
     }
-  });
+  }, []);
 
-  const [siteConfig, setSiteConfig] = useState<SiteConfig>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY + '_config');
-      return saved ? JSON.parse(saved) : (defaultSiteConfig as SiteConfig);
-    } catch {
-      return defaultSiteConfig as SiteConfig;
-    }
-  });
-
-  const [applications, setApplications] = useState<MemberApplication[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY + '_applications');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  // Save changes to localStorage whenever state updates
+  // Initialize data from Supabase & attach Realtime subscription
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY + '_leadership', JSON.stringify(leadership));
-      localStorage.setItem(STORAGE_KEY + '_events', JSON.stringify(events));
-      localStorage.setItem(STORAGE_KEY + '_archive', JSON.stringify(archive));
-      localStorage.setItem(STORAGE_KEY + '_domains', JSON.stringify(domains));
-      localStorage.setItem(STORAGE_KEY + '_config', JSON.stringify(siteConfig));
-      localStorage.setItem(STORAGE_KEY + '_applications', JSON.stringify(applications));
-    } catch (e) {
-      console.warn('Failed to save to localStorage:', e);
-    }
-  }, [leadership, events, archive, domains, siteConfig, applications]);
+    refreshApplications();
+    refreshCMSContent();
+
+    // Subscribe to Postgres changes on 'applications'
+    const channel = supabase
+      .channel('applications-portal-channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'applications' },
+        () => {
+          refreshApplications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refreshApplications, refreshCMSContent]);
 
   // Leadership methods
   const updateLeader = (id: string, updated: Partial<Leader>) => {
-    setLeadership(prev => prev.map(l => l.id === id ? { ...l, ...updated } : l));
+    setLeadership((prev) => {
+      const next = prev.map((l) => (l.id === id ? { ...l, ...updated } : l));
+      syncContentToSupabase('leadership', next);
+      return next;
+    });
   };
 
   const addLeader = (leader: Leader) => {
-    setLeadership(prev => [...prev, leader]);
+    setLeadership((prev) => {
+      const next = [...prev, leader];
+      syncContentToSupabase('leadership', next);
+      return next;
+    });
   };
 
   const deleteLeader = (id: string) => {
-    setLeadership(prev => prev.filter(l => l.id !== id));
+    setLeadership((prev) => {
+      const next = prev.filter((l) => l.id !== id);
+      syncContentToSupabase('leadership', next);
+      return next;
+    });
   };
 
   const reorderLeadership = (startIndex: number, endIndex: number) => {
-    setLeadership(prev => {
+    setLeadership((prev) => {
       const list = [...prev];
       const [removed] = list.splice(startIndex, 1);
       list.splice(endIndex, 0, removed);
+      syncContentToSupabase('leadership', list);
       return list;
     });
   };
 
   // Events methods
   const updateEvent = (id: string, updated: Partial<EventItem>) => {
-    setEvents(prev => prev.map(ev => ev.id === id ? { ...ev, ...updated } : ev));
+    setEvents((prev) => {
+      const next = prev.map((ev) => (ev.id === id ? { ...ev, ...updated } : ev));
+      syncContentToSupabase('events', next);
+      return next;
+    });
   };
 
   const addEvent = (event: EventItem) => {
-    setEvents(prev => [...prev, event]);
+    setEvents((prev) => {
+      const next = [...prev, event];
+      syncContentToSupabase('events', next);
+      return next;
+    });
   };
 
   const deleteEvent = (id: string) => {
-    setEvents(prev => prev.filter(ev => ev.id !== id));
+    setEvents((prev) => {
+      const next = prev.filter((ev) => ev.id !== id);
+      syncContentToSupabase('events', next);
+      return next;
+    });
   };
 
   const reorderEvents = (startIndex: number, endIndex: number) => {
-    setEvents(prev => {
+    setEvents((prev) => {
       const list = [...prev];
       const [removed] = list.splice(startIndex, 1);
       list.splice(endIndex, 0, removed);
+      syncContentToSupabase('events', list);
       return list;
     });
   };
 
   // Archive methods
   const updateActivity = (id: string, updated: Partial<ArchiveItem>) => {
-    setArchive(prev => prev.map(a => a.id === id ? { ...a, ...updated } : a));
+    setArchive((prev) => {
+      const next = prev.map((a) => (a.id === id ? { ...a, ...updated } : a));
+      syncContentToSupabase('archive', next);
+      return next;
+    });
   };
 
   const addActivity = (item: ArchiveItem) => {
-    setArchive(prev => [...prev, item]);
+    setArchive((prev) => {
+      const next = [...prev, item];
+      syncContentToSupabase('archive', next);
+      return next;
+    });
   };
 
   const deleteActivity = (id: string) => {
-    setArchive(prev => prev.filter(a => a.id !== id));
+    setArchive((prev) => {
+      const next = prev.filter((a) => a.id !== id);
+      syncContentToSupabase('archive', next);
+      return next;
+    });
   };
 
   const reorderArchive = (startIndex: number, endIndex: number) => {
-    setArchive(prev => {
+    setArchive((prev) => {
       const list = [...prev];
       const [removed] = list.splice(startIndex, 1);
       list.splice(endIndex, 0, removed);
+      syncContentToSupabase('archive', list);
       return list;
     });
   };
 
   // Site config
   const updateSiteConfig = (updated: Partial<SiteConfig>) => {
-    setSiteConfig(prev => ({ ...prev, ...updated }));
+    setSiteConfig((prev) => {
+      const next = { ...prev, ...updated };
+      syncContentToSupabase('siteConfig', next);
+      return next;
+    });
   };
 
-  // Member applications
-  const addApplication = (app: Omit<MemberApplication, 'id' | 'submittedAt'>) => {
-    const newEntry: MemberApplication = {
+  // Member applications: direct Supabase insert
+  const addApplication = async (app: Omit<MemberApplication, 'id' | 'submittedAt'>) => {
+    const tempId = 'temp_' + Date.now();
+    const optimisticEntry: MemberApplication = {
       ...app,
-      id: 'app_' + Date.now(),
+      id: tempId,
       submittedAt: new Date().toLocaleString(),
     };
-    setApplications(prev => [newEntry, ...prev]);
+
+    // Optimistic UI update
+    setApplications((prev) => [optimisticEntry, ...prev]);
+
+    try {
+      const { data, error } = await supabase
+        .from('applications')
+        .insert([
+          {
+            name: app.name,
+            email: app.email,
+            message: app.message,
+            usn: app.usn || '',
+            semester: app.semester || '',
+            domain: app.domain || '',
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        setApplications((prev) =>
+          prev.map((a) =>
+            a.id === tempId
+              ? {
+                  ...a,
+                  id: data.id,
+                  submittedAt: new Date(data.created_at).toLocaleString(),
+                }
+              : a
+          )
+        );
+      }
+    } catch (err) {
+      // Rollback optimistic update on failure
+      setApplications((prev) => prev.filter((a) => a.id !== tempId));
+      throw err;
+    }
   };
 
-  const deleteApplication = (id: string) => {
-    setApplications(prev => prev.filter(a => a.id !== id));
+  // Member applications: direct Supabase delete
+  const deleteApplication = async (id: string) => {
+    // Optimistic UI update
+    setApplications((prev) => prev.filter((a) => a.id !== id));
+
+    try {
+      const { error } = await supabase.from('applications').delete().eq('id', id);
+      if (error) {
+        console.error('[Supabase] Failed to delete application:', error);
+        refreshApplications();
+      }
+    } catch (err) {
+      console.error('[Supabase] Error deleting application:', err);
+      refreshApplications();
+    }
   };
 
   // Reset to original data
-  const resetToDefaults = () => {
+  const resetToDefaults = async () => {
     setLeadership(defaultLeadership as Leader[]);
     setEvents(defaultEvents as EventItem[]);
     setArchive(defaultArchive as ArchiveItem[]);
     setDomains(defaultDomains as DomainItem[]);
     setSiteConfig(defaultSiteConfig as SiteConfig);
+
     try {
-      localStorage.removeItem(STORAGE_KEY + '_leadership');
-      localStorage.removeItem(STORAGE_KEY + '_events');
-      localStorage.removeItem(STORAGE_KEY + '_archive');
-      localStorage.removeItem(STORAGE_KEY + '_domains');
-      localStorage.removeItem(STORAGE_KEY + '_config');
+      await supabase.from('club_content').delete().neq('key', '');
     } catch (e) {
-      console.warn('Error clearing localStorage:', e);
+      console.warn('[Supabase] Error resetting cloud content:', e);
     }
   };
 
@@ -239,6 +372,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         domains,
         siteConfig,
         applications,
+        isSupabaseConnected,
+        isLoadingApplications,
         updateLeader,
         addLeader,
         deleteLeader,
@@ -254,6 +389,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateSiteConfig,
         addApplication,
         deleteApplication,
+        refreshApplications,
         resetToDefaults,
       }}
     >

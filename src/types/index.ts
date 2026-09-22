@@ -48,10 +48,10 @@ export interface DomainItem {
 export interface MemberApplication {
   id: string;
   name: string;
-  usn: string;
+  usn?: string;
   email: string;
-  semester: string;
-  domain: string;
+  semester?: string;
+  domain?: string;
   message: string;
   submittedAt: string;
 }
