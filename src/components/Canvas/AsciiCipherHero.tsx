@@ -179,69 +179,103 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
 
     buildGrid();
 
-    if (prefersReducedMotion) {
-      const onResize = () => buildGrid();
-      window.addEventListener('resize', onResize);
-      return () => window.removeEventListener('resize', onResize);
-    }
-
-    // Scramble lit characters every 50ms
-    const scrambleInterval = setInterval(() => {
-      for (let i = 0; i < particles.length; i++) {
-        if (particles[i].isLit) {
-          particles[i].char = ASCII_RAMP[Math.floor(Math.random() * ASCII_RAMP.length)];
-        }
-      }
-    }, 50);
-
+    let isVisible = true;
     let animId = 0;
-    const loop = () => {
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        if (!p.isLit) continue;
+    let scrambleInterval: ReturnType<typeof setInterval> | null = null;
 
-        if (mouse.active) {
-          const dx = p.col + p.offsetX - mouse.col;
-          const dy = p.row + p.offsetY - mouse.row;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+    const startAnimation = () => {
+      if (animId) return;
 
-          if (dist < 10 && dist > 0) {
-            const force = 1 - dist / 10;
-            const impulse = force ** 2 * 42;
-            p.velX += (dx / dist) * impulse;
-            p.velY += (dy / dist) * impulse;
-            p.velX += (Math.random() - 0.5) * 5.5 * force;
-            p.velY += (Math.random() - 0.5) * 5.5 * force;
+      if (!scrambleInterval) {
+        scrambleInterval = setInterval(() => {
+          for (let i = 0; i < particles.length; i++) {
+            if (particles[i].isLit) {
+              particles[i].char = ASCII_RAMP[Math.floor(Math.random() * ASCII_RAMP.length)];
+            }
+          }
+        }, 60);
+      }
+
+      const loop = () => {
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          if (!p.isLit) continue;
+
+          if (mouse.active) {
+            const dx = p.col + p.offsetX - mouse.col;
+            const dy = p.row + p.offsetY - mouse.row;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 10 && dist > 0) {
+              const force = 1 - dist / 10;
+              const impulse = force ** 2 * 42;
+              p.velX += (dx / dist) * impulse;
+              p.velY += (dy / dist) * impulse;
+              p.velX += (Math.random() - 0.5) * 5.5 * force;
+              p.velY += (Math.random() - 0.5) * 5.5 * force;
+            }
+          }
+
+          p.velX += -0.025 * p.offsetX;
+          p.velY += -0.025 * p.offsetY;
+          p.velX *= 0.5;
+          p.velY *= 0.5;
+          p.offsetX += p.velX;
+          p.offsetY += p.velY;
+
+          if (Math.abs(p.offsetX) < 0.01 && Math.abs(p.velX) < 0.01) {
+            p.offsetX = 0;
+            p.velX = 0;
+          }
+          if (Math.abs(p.offsetY) < 0.01 && Math.abs(p.velY) < 0.01) {
+            p.offsetY = 0;
+            p.velY = 0;
           }
         }
 
-        p.velX += -0.025 * p.offsetX;
-        p.velY += -0.025 * p.offsetY;
-        p.velX *= 0.5;
-        p.velY *= 0.5;
-        p.offsetX += p.velX;
-        p.offsetY += p.velY;
+        render();
+        animId = requestAnimationFrame(loop);
+      };
 
-        if (Math.abs(p.offsetX) < 0.01 && Math.abs(p.velX) < 0.01) {
-          p.offsetX = 0;
-          p.velX = 0;
-        }
-        if (Math.abs(p.offsetY) < 0.01 && Math.abs(p.velY) < 0.01) {
-          p.offsetY = 0;
-          p.velY = 0;
-        }
-      }
-
-      render();
       animId = requestAnimationFrame(loop);
     };
 
-    animId = requestAnimationFrame(loop);
+    const stopAnimation = () => {
+      if (animId) {
+        cancelAnimationFrame(animId);
+        animId = 0;
+      }
+      if (scrambleInterval) {
+        clearInterval(scrambleInterval);
+        scrambleInterval = null;
+      }
+    };
+
+    if (prefersReducedMotion) {
+      render();
+    } else {
+      startAnimation();
+    }
+
+    // Viewport IntersectionObserver to pause off-screen rendering
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+        if (isVisible) {
+          if (!prefersReducedMotion) startAnimation();
+        } else {
+          stopAnimation();
+        }
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(container);
+
+    let cachedRect = container.getBoundingClientRect();
 
     const onPointerMove = (e: PointerEvent) => {
-      const rect = container.getBoundingClientRect();
-      mouse.col = (e.clientX - rect.left) / cellStep;
-      mouse.row = (e.clientY - rect.top) / cellStep;
+      mouse.col = (e.clientX - cachedRect.left) / cellStep;
+      mouse.row = (e.clientY - cachedRect.top) / cellStep;
       mouse.active = true;
     };
 
@@ -252,9 +286,8 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 0) {
         const touch = e.touches[0];
-        const rect = container.getBoundingClientRect();
-        mouse.col = (touch.clientX - rect.left) / cellStep;
-        mouse.row = (touch.clientY - rect.top) / cellStep;
+        mouse.col = (touch.clientX - cachedRect.left) / cellStep;
+        mouse.row = (touch.clientY - cachedRect.top) / cellStep;
         mouse.active = true;
       }
     };
@@ -264,19 +297,23 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
     };
 
     const onResize = () => {
+      cachedRect = container.getBoundingClientRect();
       buildGrid();
     };
 
     window.addEventListener('resize', onResize);
-    container.addEventListener('pointermove', onPointerMove);
+    container.addEventListener('pointermove', onPointerMove, { passive: true });
     container.addEventListener('pointerleave', onPointerLeave);
-    container.addEventListener('touchstart', onTouchMove, { passive: true });
+    container.addEventListener('touchstart', (e) => {
+      cachedRect = container.getBoundingClientRect();
+      onTouchMove(e);
+    }, { passive: true });
     container.addEventListener('touchmove', onTouchMove, { passive: true });
     container.addEventListener('touchend', onTouchEnd, { passive: true });
 
     return () => {
-      clearInterval(scrambleInterval);
-      cancelAnimationFrame(animId);
+      stopAnimation();
+      observer.disconnect();
       window.removeEventListener('resize', onResize);
       container.removeEventListener('pointermove', onPointerMove);
       container.removeEventListener('pointerleave', onPointerLeave);

@@ -61,27 +61,43 @@ export const LeadershipSection: React.FC = () => {
   // Repeated list for continuous seamless infinite loop
   const loopList = [...LEADERS, ...LEADERS];
 
-  // Auto-scroll loop
+  // Auto-scroll loop with Viewport IntersectionObserver
   useEffect(() => {
     const el = scrollRef.current;
     if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     let animId = 0;
+    let isVisible = false;
+
     const tick = () => {
-      const halfWidth = el.scrollWidth / 2;
-      if (!isInteracting.current) {
-        el.scrollLeft += 0.5;
-      }
-      if (el.scrollLeft >= halfWidth) {
-        el.scrollLeft -= halfWidth;
-      } else if (el.scrollLeft <= 0) {
-        el.scrollLeft += halfWidth;
+      if (isVisible) {
+        const halfWidth = el.scrollWidth / 2;
+        if (!isInteracting.current) {
+          el.scrollLeft += 0.5;
+        }
+        if (el.scrollLeft >= halfWidth) {
+          el.scrollLeft -= halfWidth;
+        } else if (el.scrollLeft <= 0) {
+          el.scrollLeft += halfWidth;
+        }
       }
       animId = requestAnimationFrame(tick);
     };
 
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(el);
+
     animId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animId);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      observer.disconnect();
+    };
   }, []);
 
   const handleInteraction = () => {

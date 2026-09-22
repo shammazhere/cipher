@@ -63,7 +63,7 @@ const TrailPhoto = memo(function TrailPhoto({
         } as React.CSSProperties
       }
     >
-      <img src={photo.img} alt="" draggable={false} loading="eager" />
+      <img src={photo.img} alt="" draggable={false} loading="eager" decoding="async" />
     </div>
   );
 });
@@ -132,7 +132,7 @@ export const CursorPhotoTrail: React.FC<CursorPhotoTrailProps> = ({
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => setIsInView(entry.isIntersecting),
-      { threshold: 0.15 }
+      { threshold: 0.1 }
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -238,13 +238,13 @@ export const CursorPhotoTrail: React.FC<CursorPhotoTrailProps> = ({
     }
 
     window.addEventListener('mousemove', onMouseMove, { passive: true });
-    window.addEventListener('touchmove', onTouchMove, { passive: true });
-    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: true });
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
 
     return () => {
       window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('touchmove', onTouchMove);
-      window.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchstart', onTouchStart);
       if (ambientTimer) clearInterval(ambientTimer);
     };
   }, [images, isInView, spawnPhoto]);
