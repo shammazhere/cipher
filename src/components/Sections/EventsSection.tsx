@@ -83,9 +83,10 @@ const EventFlipCard: React.FC<{
       onOpenGallery(event);
       setTimeout(() => {
         setIsFlipped(false);
-      }, 300);
-    }, 380);
+      }, 150);
+    }, 200);
   };
+
 
   return (
     <div

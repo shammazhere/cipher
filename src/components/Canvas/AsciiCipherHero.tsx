@@ -46,6 +46,7 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    let isMobile = false;
     let width = 0;
     let heightPx = 0;
     let charSize = 8;
@@ -53,7 +54,12 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
     let cols = 0;
     let rows = 0;
     let particles: AsciiParticle[] = [];
+    let litIndices: number[] = [];
     const mouse = { col: -999, row: -999, active: false };
+    let isLoopRunning = false;
+    let animId = 0;
+    let scrambleInterval: ReturnType<typeof setInterval> | null = null;
+    let isVisible = true;
 
     const render = () => {
       ctx.font = `${charSize + 2}px monospace`;
@@ -61,13 +67,12 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
       ctx.textAlign = 'center';
       ctx.clearRect(0, 0, width, heightPx);
 
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        if (!p.isLit) continue;
-
+      const len = litIndices.length;
+      for (let j = 0; j < len; j++) {
+        const p = particles[litIndices[j]];
         const dist = Math.min(1, Math.hypot(p.offsetX, p.offsetY) / 3);
         const r = Math.round(140 - 140 * dist);
-        const g = Math.round(255 + 0 * dist);
+        const g = 255;
         const b = Math.round(170 - 105 * dist);
 
         ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
@@ -79,24 +84,26 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
 
     const buildGrid = () => {
       const rect = container.getBoundingClientRect();
-      width = rect.width;
-      heightPx = rect.height;
+      width = rect.width || window.innerWidth;
+      heightPx = rect.height || (window.innerHeight * 0.4);
 
-      const isMobile = width < 768;
+      isMobile = width < 768 || window.matchMedia('(pointer: coarse)').matches;
+      const dpr = isMobile ? 1.0 : Math.min(window.devicePixelRatio || 1, 1.5);
+
       charSize = isMobile ? 8 : 9;
       cellStep = charSize + (isMobile ? 1 : 2);
 
       cols = Math.floor(width / cellStep);
       rows = Math.floor(heightPx / cellStep);
 
-      canvas.width = width * dpr;
-      canvas.height = heightPx * dpr;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(heightPx * dpr);
       canvas.style.width = `${width}px`;
       canvas.style.height = `${heightPx}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       // Rasterize CIPHER text on temporary offscreen canvas
-      const textWidth = Math.min(0.82 * width, 1100);
+      const textWidth = Math.min(0.84 * width, 1100);
       const textHeight = 0.24 * textWidth;
       const startCol = Math.floor((width - textWidth) / 2 / cellStep);
       const startRow = Math.floor((heightPx - textHeight) / 2 / cellStep);
@@ -139,7 +146,9 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
 
           const { data } = scaledCtx.getImageData(0, 0, sampleCols, sampleRows);
           particles = [];
+          litIndices = [];
 
+          let pIndex = 0;
           for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
               let isLit = false;
@@ -159,6 +168,10 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
                   : ' ';
               }
 
+              if (isLit) {
+                litIndices.push(pIndex);
+              }
+
               particles.push({
                 col: c,
                 row: r,
@@ -169,6 +182,7 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
                 velX: 0,
                 velY: 0,
               });
+              pIndex++;
             }
           }
         }
@@ -179,65 +193,80 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
 
     buildGrid();
 
-    let isVisible = true;
-    let animId = 0;
-    let scrambleInterval: ReturnType<typeof setInterval> | null = null;
+    const loop = () => {
+      let isMoving = mouse.active;
+      const len = litIndices.length;
 
-    const startAnimation = () => {
-      if (animId) return;
+      for (let j = 0; j < len; j++) {
+        const p = particles[litIndices[j]];
 
-      if (!scrambleInterval) {
-        scrambleInterval = setInterval(() => {
-          for (let i = 0; i < particles.length; i++) {
-            if (particles[i].isLit) {
-              particles[i].char = ASCII_RAMP[Math.floor(Math.random() * ASCII_RAMP.length)];
-            }
-          }
-        }, 60);
-      }
+        if (mouse.active) {
+          const dx = p.col + p.offsetX - mouse.col;
+          const dy = p.row + p.offsetY - mouse.row;
+          const dist = Math.sqrt(dx * dx + dy * dy);
 
-      const loop = () => {
-        for (let i = 0; i < particles.length; i++) {
-          const p = particles[i];
-          if (!p.isLit) continue;
-
-          if (mouse.active) {
-            const dx = p.col + p.offsetX - mouse.col;
-            const dy = p.row + p.offsetY - mouse.row;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist < 10 && dist > 0) {
-              const force = 1 - dist / 10;
-              const impulse = force ** 2 * 42;
-              p.velX += (dx / dist) * impulse;
-              p.velY += (dy / dist) * impulse;
-              p.velX += (Math.random() - 0.5) * 5.5 * force;
-              p.velY += (Math.random() - 0.5) * 5.5 * force;
-            }
-          }
-
-          p.velX += -0.025 * p.offsetX;
-          p.velY += -0.025 * p.offsetY;
-          p.velX *= 0.5;
-          p.velY *= 0.5;
-          p.offsetX += p.velX;
-          p.offsetY += p.velY;
-
-          if (Math.abs(p.offsetX) < 0.01 && Math.abs(p.velX) < 0.01) {
-            p.offsetX = 0;
-            p.velX = 0;
-          }
-          if (Math.abs(p.offsetY) < 0.01 && Math.abs(p.velY) < 0.01) {
-            p.offsetY = 0;
-            p.velY = 0;
+          if (dist < 10 && dist > 0) {
+            const force = 1 - dist / 10;
+            const impulse = force ** 2 * 42;
+            p.velX += (dx / dist) * impulse;
+            p.velY += (dy / dist) * impulse;
+            p.velX += (Math.random() - 0.5) * 5.5 * force;
+            p.velY += (Math.random() - 0.5) * 5.5 * force;
+            isMoving = true;
           }
         }
 
-        render();
-        animId = requestAnimationFrame(loop);
-      };
+        p.velX += -0.025 * p.offsetX;
+        p.velY += -0.025 * p.offsetY;
+        p.velX *= 0.5;
+        p.velY *= 0.5;
+        p.offsetX += p.velX;
+        p.offsetY += p.velY;
 
-      animId = requestAnimationFrame(loop);
+        if (Math.abs(p.offsetX) < 0.01 && Math.abs(p.velX) < 0.01) {
+          p.offsetX = 0;
+          p.velX = 0;
+        } else {
+          isMoving = true;
+        }
+        if (Math.abs(p.offsetY) < 0.01 && Math.abs(p.velY) < 0.01) {
+          p.offsetY = 0;
+          p.velY = 0;
+        } else {
+          isMoving = true;
+        }
+      }
+
+      render();
+
+      if (isMoving && isVisible) {
+        animId = requestAnimationFrame(loop);
+      } else {
+        isLoopRunning = false;
+        animId = 0;
+      }
+    };
+
+    const requestLoop = () => {
+      if (!isLoopRunning && isVisible && !prefersReducedMotion) {
+        isLoopRunning = true;
+        animId = requestAnimationFrame(loop);
+      }
+    };
+
+    const startAnimation = () => {
+      if (!scrambleInterval) {
+        scrambleInterval = setInterval(() => {
+          const len = litIndices.length;
+          for (let j = 0; j < len; j++) {
+            particles[litIndices[j]].char = ASCII_RAMP[Math.floor(Math.random() * ASCII_RAMP.length)];
+          }
+          if (!isLoopRunning) {
+            render();
+          }
+        }, isMobile ? 180 : 90);
+      }
+      requestLoop();
     };
 
     const stopAnimation = () => {
@@ -245,6 +274,7 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
         cancelAnimationFrame(animId);
         animId = 0;
       }
+      isLoopRunning = false;
       if (scrambleInterval) {
         clearInterval(scrambleInterval);
         scrambleInterval = null;
@@ -271,12 +301,21 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
     );
     observer.observe(container);
 
-    let cachedRect = container.getBoundingClientRect();
+    let cachedRect: DOMRect | null = null;
+    const updateCachedRect = () => {
+      if (container) {
+        cachedRect = container.getBoundingClientRect();
+      }
+    };
 
     const onPointerMove = (e: PointerEvent) => {
-      mouse.col = (e.clientX - cachedRect.left) / cellStep;
-      mouse.row = (e.clientY - cachedRect.top) / cellStep;
-      mouse.active = true;
+      if (!cachedRect) updateCachedRect();
+      if (cachedRect) {
+        mouse.col = (e.clientX - cachedRect.left) / cellStep;
+        mouse.row = (e.clientY - cachedRect.top) / cellStep;
+        mouse.active = true;
+        requestLoop();
+      }
     };
 
     const onPointerLeave = () => {
@@ -285,10 +324,14 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
 
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 0) {
-        const touch = e.touches[0];
-        mouse.col = (touch.clientX - cachedRect.left) / cellStep;
-        mouse.row = (touch.clientY - cachedRect.top) / cellStep;
-        mouse.active = true;
+        if (!cachedRect) updateCachedRect();
+        if (cachedRect) {
+          const touch = e.touches[0];
+          mouse.col = (touch.clientX - cachedRect.left) / cellStep;
+          mouse.row = (touch.clientY - cachedRect.top) / cellStep;
+          mouse.active = true;
+          requestLoop();
+        }
       }
     };
 
@@ -296,31 +339,37 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
       mouse.active = false;
     };
 
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
     const onResize = () => {
-      cachedRect = container.getBoundingClientRect();
-      buildGrid();
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        updateCachedRect();
+        buildGrid();
+        requestLoop();
+      }, 150);
     };
 
-    window.addEventListener('resize', onResize);
+    window.addEventListener('resize', onResize, { passive: true });
+    window.addEventListener('scroll', updateCachedRect, { passive: true });
     container.addEventListener('pointermove', onPointerMove, { passive: true });
     container.addEventListener('pointerleave', onPointerLeave);
-    container.addEventListener('touchstart', (e) => {
-      cachedRect = container.getBoundingClientRect();
-      onTouchMove(e);
-    }, { passive: true });
+    container.addEventListener('touchstart', onTouchMove, { passive: true });
     container.addEventListener('touchmove', onTouchMove, { passive: true });
     container.addEventListener('touchend', onTouchEnd, { passive: true });
 
     return () => {
       stopAnimation();
       observer.disconnect();
+      if (resizeTimer) clearTimeout(resizeTimer);
       window.removeEventListener('resize', onResize);
+      window.removeEventListener('scroll', updateCachedRect);
       container.removeEventListener('pointermove', onPointerMove);
       container.removeEventListener('pointerleave', onPointerLeave);
       container.removeEventListener('touchstart', onTouchMove);
       container.removeEventListener('touchmove', onTouchMove);
       container.removeEventListener('touchend', onTouchEnd);
     };
+
   }, []);
 
   return (

@@ -140,6 +140,13 @@ html.lenis, html.lenis body {
   }
 }
 
+@media (max-width: 768px), (pointer: coarse), (hover: none) {
+  .cipher-custom-cursor,
+  .cipher-custom-cursor * {
+    cursor: auto !important;
+  }
+}
+
 /* =============================================================================
    CURSOR PHOTO TRAIL (CPT) - EXACT REFERENCE SPEC
    ============================================================================= */
@@ -424,6 +431,53 @@ html.lenis, html.lenis body {
   z-index: 1;
 }
 
+/*
+  =============================================================================
+  PERFORMANCE & HARDWARE ACCELERATION ENHANCEMENTS
+  =============================================================================
+*/
+
+/* Defer layout and painting of offscreen sections until scrolled into view */
+section#about,
+section#leadership,
+section#events,
+section#join {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 700px;
+}
+
+/* Hardware accelerated transform layers */
+.hardware-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Mobile-tuned performance rules */
+@media (max-width: 768px), (pointer: coarse) {
+  /* Avoid GPU fill-rate throttling from heavy background blur on mobile */
+  .backdrop-blur-md,
+  .backdrop-blur-sm {
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+  }
+
+  /* Optimized box glows on mobile to reduce rasterization passes */
+  .box-glow {
+    box-shadow: 0 0 0 1px #00ff4130, 0 0 12px -4px var(--matrix-glow);
+  }
+
+  .box-glow-hover {
+    box-shadow: 0 0 0 1px #00ff4160, 0 0 18px -3px var(--matrix-glow);
+  }
+
+  /* Native touch scrolling momentum */
+  .overflow-x-auto,
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -450,3 +504,4 @@ html.lenis, html.lenis body {
     display: none;
   }
 }
+

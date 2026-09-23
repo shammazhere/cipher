@@ -78,22 +78,29 @@ export const AppContent: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Lock scroll during preloader
+  // Lock scroll during preloader only on public view
   useEffect(() => {
+    if (isAdmin) {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      return;
+    }
     document.body.style.overflow = bootSeen ? '' : 'hidden';
     return () => {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     };
-  }, [bootSeen]);
+  }, [bootSeen, isAdmin]);
 
   // Dynamic SEO metadata
   usePageSEO(isAdmin ? 'admin' : 'home');
 
-  // Inertial smooth scroll
+  // Inertial smooth scroll (disabled completely in admin)
   useSmoothScroll({
     disabled: isAdmin,
-    isModalOpen: !bootSeen,
+    isModalOpen: !bootSeen && !isAdmin,
   });
+
 
   return (
     <div className="relative min-h-screen bg-[#050705] text-[#c8f7d0] selection:bg-[#00ff41] selection:text-[#050705]">

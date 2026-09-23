@@ -30,38 +30,60 @@ export const MatrixRain: React.FC<MatrixRainProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let animationFrameId: number;
-    let width = (canvas.width = canvas.parentElement?.clientWidth || window.innerWidth);
-    let height = (canvas.height = canvas.parentElement?.clientHeight || window.innerHeight);
+    const isMobile = window.innerWidth < 768 || window.matchMedia('(pointer: coarse)').matches;
+    const dpr = isMobile ? 1.0 : Math.min(window.devicePixelRatio || 1, 1.5);
 
-    const fontSize = 16;
-    const columns = Math.floor(width / fontSize);
-    const drops: number[] = new Array(columns).fill(1).map(() => Math.floor(Math.random() * -50));
+    let animationFrameId = 0;
+    let isVisible = true;
+    let width = 0;
+    let height = 0;
+    let drops: number[] = [];
 
-    const handleResize = () => {
+    const fontSize = isMobile ? 14 : 16;
+
+    const setupCanvas = () => {
       if (!canvas) return;
-      width = canvas.width = canvas.parentElement?.clientWidth || window.innerWidth;
-      height = canvas.height = canvas.parentElement?.clientHeight || window.innerHeight;
+      width = canvas.parentElement?.clientWidth || window.innerWidth;
+      height = canvas.parentElement?.clientHeight || window.innerHeight;
+
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.font = `${fontSize}px "JetBrains Mono", monospace`;
+
+      const columns = Math.floor(width / fontSize);
+      drops = new Array(columns).fill(1).map(() => Math.floor(Math.random() * -50));
     };
 
-    window.addEventListener('resize', handleResize);
+    setupCanvas();
+
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
+    const handleResize = () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(setupCanvas, 150);
+    };
+
+    window.addEventListener('resize', handleResize, { passive: true });
 
     let lastTime = 0;
-    const interval = intense ? 33 : 45; // 30 FPS or 22 FPS for smooth matrix pacing
+    const interval = intense ? (isMobile ? 40 : 33) : (isMobile ? 60 : 45);
 
     const draw = (currentTime: number) => {
       animationFrameId = requestAnimationFrame(draw);
+
+      if (!isVisible) return;
 
       if (currentTime - lastTime < interval) return;
       lastTime = currentTime;
 
       // Semi-transparent background creates the trailing fading effect
-      ctx.fillStyle = 'rgba(5, 7, 5, 0.1)';
+      ctx.fillStyle = 'rgba(5, 7, 5, 0.12)';
       ctx.fillRect(0, 0, width, height);
 
-      ctx.font = `${fontSize}px "JetBrains Mono", monospace`;
-
-      for (let i = 0; i < drops.length; i++) {
+      const numDrops = drops.length;
+      for (let i = 0; i < numDrops; i++) {
         const char = MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)];
         const x = i * fontSize;
         const y = drops[i] * fontSize;
@@ -86,11 +108,22 @@ export const MatrixRain: React.FC<MatrixRainProps> = ({
 
     animationFrameId = requestAnimationFrame(draw);
 
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(canvas);
+
     return () => {
       cancelAnimationFrame(animationFrameId);
+      observer.disconnect();
+      if (resizeTimer) clearTimeout(resizeTimer);
       window.removeEventListener('resize', handleResize);
     };
   }, [intense]);
+
 
   return (
     <canvas

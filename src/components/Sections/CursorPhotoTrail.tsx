@@ -90,19 +90,34 @@ export const CursorPhotoTrail: React.FC<CursorPhotoTrailProps> = ({
   const latestMouse = useRef<{ x: number; y: number } | null>(null);
   const isTracking = useRef<boolean>(false);
 
+  const isTouchDevice = typeof window !== 'undefined' && (window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window);
+  const maxPhotos = isTouchDevice ? 3 : 5;
+
   const handlePhotoDone = useCallback((id: number) => {
     setPhotos((prev) => (prev.length ? prev.filter((p) => p.id !== id) : prev));
+  }, []);
+
+  const cachedRectRef = useRef<DOMRect | null>(null);
+  const updateCachedRect = useCallback(() => {
+    if (containerRef.current) {
+      cachedRectRef.current = containerRef.current.getBoundingClientRect();
+    }
   }, []);
 
   const spawnPhoto = useCallback(
     (clientX: number, clientY: number, speed: number = 0.5) => {
       const el = containerRef.current;
       if (!el || !images.length) return;
-      const rect = el.getBoundingClientRect();
-      const boost = boostRatio(speed);
-      reactiveLabelRef.current?.style.setProperty('--cpt-boost', boost.toFixed(3));
+      if (!cachedRectRef.current) updateCachedRect();
+      const rect = cachedRectRef.current;
+      if (!rect || rect.width === 0) return;
 
-      const cardWidth = Math.min(Math.max(rect.width * (0.32 + 0.2 * boost), 90), 420);
+      const boost = boostRatio(speed);
+      if (reactiveLabelRef.current) {
+        reactiveLabelRef.current.style.setProperty('--cpt-boost', boost.toFixed(3));
+      }
+
+      const cardWidth = Math.min(Math.max(rect.width * (0.32 + 0.18 * boost), 80), 380);
       const cardHeight = 0.68 * cardWidth;
       const localX = clientX - rect.left;
       const localY = clientY - rect.top;
@@ -114,16 +129,16 @@ export const CursorPhotoTrail: React.FC<CursorPhotoTrailProps> = ({
         width: cardWidth,
         height: cardHeight,
         rotation: (Math.random() - 0.5) * (5 + 7 * boost),
-        duration: 2200 + 800 * Math.random(),
+        duration: isTouchDevice ? 2000 : (2200 + 600 * Math.random()),
         img: images[Math.floor(Math.random() * images.length)],
       };
 
       setPhotos((prevList) => [
-        ...(prevList.length >= 6 ? prevList.slice(prevList.length - 5) : prevList),
+        ...(prevList.length >= maxPhotos ? prevList.slice(prevList.length - (maxPhotos - 1)) : prevList),
         newPhoto,
       ]);
     },
-    [images]
+    [images, isTouchDevice, maxPhotos, updateCachedRect]
   );
 
   // Intersection Observer to enable/disable when in viewport
@@ -131,12 +146,17 @@ export const CursorPhotoTrail: React.FC<CursorPhotoTrailProps> = ({
     const el = containerRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
-      ([entry]) => setIsInView(entry.isIntersecting),
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+        if (entry.isIntersecting) {
+          updateCachedRect();
+        }
+      },
       { threshold: 0.1 }
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [updateCachedRect]);
 
   // Mouse & Touch trail physics
   useEffect(() => {
@@ -150,16 +170,20 @@ export const CursorPhotoTrail: React.FC<CursorPhotoTrailProps> = ({
       return;
     }
 
+    updateCachedRect();
+
     const processFrame = () => {
       isRafQueued.current = false;
       const m = latestMouse.current;
       if (!m) return;
 
-      const rect = el.getBoundingClientRect();
-      if (!(m.x >= rect.left && m.x <= rect.right && m.y >= rect.top && m.y <= rect.bottom)) {
+      const rect = cachedRectRef.current;
+      if (!rect || !(m.x >= rect.left && m.x <= rect.right && m.y >= rect.top && m.y <= rect.bottom)) {
         isTracking.current = false;
         prevMouse.current = null;
-        reactiveLabelRef.current?.style.setProperty('--cpt-boost', '0');
+        if (reactiveLabelRef.current) {
+          reactiveLabelRef.current.style.setProperty('--cpt-boost', '0');
+        }
         return;
       }
 
@@ -175,11 +199,13 @@ export const CursorPhotoTrail: React.FC<CursorPhotoTrailProps> = ({
 
       prevMouse.current = { x: m.x, y: m.y, t: now };
       const boost = boostRatio(speed);
-      reactiveLabelRef.current?.style.setProperty('--cpt-boost', boost.toFixed(3));
+      if (reactiveLabelRef.current) {
+        reactiveLabelRef.current.style.setProperty('--cpt-boost', boost.toFixed(3));
+      }
 
       if (speed < 0.05) return;
 
-      const spawnCooldown = 240 - 180 * boost;
+      const spawnCooldown = isTouchDevice ? 320 : (240 - 180 * boost);
       if (now - lastSpawnTime.current < spawnCooldown) return;
       lastSpawnTime.current = now;
 
@@ -207,8 +233,10 @@ export const CursorPhotoTrail: React.FC<CursorPhotoTrailProps> = ({
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length > 0) {
         const t = e.touches[0];
-        const rect = el.getBoundingClientRect();
+        updateCachedRect();
+        const rect = cachedRectRef.current;
         if (
+          rect &&
           t.clientX >= rect.left &&
           t.clientX <= rect.right &&
           t.clientY >= rect.top &&
@@ -220,34 +248,36 @@ export const CursorPhotoTrail: React.FC<CursorPhotoTrailProps> = ({
       }
     };
 
-    // Ambient automatic photo popping on mobile/touch so users see the photos without having to guess
-    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+    // Ambient automatic photo popping on mobile/touch only when visible
     let ambientTimer: ReturnType<typeof setInterval> | null = null;
-    if (isTouchDevice) {
-      const rect = el.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2 + (Math.random() - 0.5) * (rect.width * 0.4);
-      const cy = rect.top + rect.height / 2 + (Math.random() - 0.5) * (rect.height * 0.3);
-      spawnPhoto(cx, cy, 0.4);
-
+    if (isTouchDevice && isInView) {
       ambientTimer = setInterval(() => {
-        const r = el.getBoundingClientRect();
-        const rx = r.left + r.width / 2 + (Math.random() - 0.5) * (r.width * 0.5);
-        const ry = r.top + r.height / 2 + (Math.random() - 0.5) * (r.height * 0.4);
-        spawnPhoto(rx, ry, 0.35);
-      }, 2500);
+        if (!cachedRectRef.current) updateCachedRect();
+        const r = cachedRectRef.current;
+        if (r && r.width > 0) {
+          const rx = r.left + r.width / 2 + (Math.random() - 0.5) * (r.width * 0.4);
+          const ry = r.top + r.height / 2 + (Math.random() - 0.5) * (r.height * 0.3);
+          spawnPhoto(rx, ry, 0.35);
+        }
+      }, 3500);
     }
 
     window.addEventListener('mousemove', onMouseMove, { passive: true });
+    window.addEventListener('scroll', updateCachedRect, { passive: true });
+    window.addEventListener('resize', updateCachedRect, { passive: true });
     el.addEventListener('touchmove', onTouchMove, { passive: true });
     el.addEventListener('touchstart', onTouchStart, { passive: true });
 
     return () => {
       window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('scroll', updateCachedRect);
+      window.removeEventListener('resize', updateCachedRect);
       el.removeEventListener('touchmove', onTouchMove);
       el.removeEventListener('touchstart', onTouchStart);
       if (ambientTimer) clearInterval(ambientTimer);
     };
-  }, [images, isInView, spawnPhoto]);
+  }, [images, isInView, isTouchDevice, spawnPhoto, updateCachedRect]);
+
 
   return (
     <div

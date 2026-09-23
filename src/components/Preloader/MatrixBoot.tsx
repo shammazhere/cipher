@@ -245,11 +245,28 @@ const CipherDecrypt: React.FC<CipherDecryptProps> = ({ onResolved }) => {
     let lastScramble = 0;
     const startTime = performance.now();
 
+    let cachedLetterCenters: { x: number; y: number }[] = [];
+    let cachedContainerRect: DOMRect | null = null;
+
+    const updateCachedPositions = () => {
+      if (containerRef.current) {
+        cachedContainerRect = containerRef.current.getBoundingClientRect();
+      }
+      cachedLetterCenters = letterRefs.current.map((el) => {
+        if (!el) return { x: 0, y: 0 };
+        const r = el.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      });
+    };
+
+    updateCachedPositions();
+
     const onPointerMove = (e: PointerEvent) => {
       pointerPos.current = { x: e.clientX, y: e.clientY, active: true };
     };
 
-    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('resize', updateCachedPositions, { passive: true });
 
     const tick = (now: number) => {
       const elapsed = now - startTime;
@@ -264,26 +281,20 @@ const CipherDecrypt: React.FC<CipherDecryptProps> = ({ onResolved }) => {
       let curX = pointerPos.current.x;
       let curY = pointerPos.current.y;
 
-      if (!pointerPos.current.active && containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
+      if (!pointerPos.current.active && cachedContainerRect) {
         const swing = (Math.sin(elapsed / 700) + 1) / 2;
-        curX = rect.left + swing * rect.width;
-        curY = rect.top + rect.height / 2;
+        curX = cachedContainerRect.left + swing * cachedContainerRect.width;
+        curY = cachedContainerRect.top + cachedContainerRect.height / 2;
       }
 
-      if (now - lastScramble > 55) {
+      if (now - lastScramble > 65) {
         lastScramble = now;
         setLetters(
           TARGET_WORD.split('').map((char, idx) => {
             if (solvedRef.current[idx]) return char;
-            const el = letterRefs.current[idx];
-            if (el) {
-              const r = el.getBoundingClientRect();
-              const cx = r.left + r.width / 2;
-              const cy = r.top + r.height / 2;
-              if (Math.hypot(cx - curX, cy - curY) < 90) {
-                return char;
-              }
+            const center = cachedLetterCenters[idx];
+            if (center && Math.hypot(center.x - curX, center.y - curY) < 90) {
+              return char;
             }
             return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
           })
@@ -293,6 +304,7 @@ const CipherDecrypt: React.FC<CipherDecryptProps> = ({ onResolved }) => {
       if (lettersToSolve >= TARGET_WORD.length + 1) {
         setLetters(TARGET_WORD.split(''));
         window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('resize', updateCachedPositions);
         setTimeout(onResolved, 500);
         return;
       }
@@ -305,8 +317,10 @@ const CipherDecrypt: React.FC<CipherDecryptProps> = ({ onResolved }) => {
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('resize', updateCachedPositions);
     };
   }, [onResolved]);
+
 
   return (
     <motion.div

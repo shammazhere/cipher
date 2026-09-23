@@ -23,34 +23,35 @@ export function useSmoothScroll({ disabled = false, isModalOpen = false }: UseSm
   useEffect(() => {
     if (disabled) return;
 
-    // Detect if device is primary touch-based (mobile/tablet)
+    // Detect touch / coarse pointer devices (phones & tablets)
     const isTouch = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 
-    // Initialize Lenis with tuned momentum physics
-    const lenis = new Lenis({
-      duration: isTouch ? 1.0 : 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: 'vertical',
-      gestureOrientation: 'vertical',
-      smoothWheel: true,
-      wheelMultiplier: 1.0,
-      touchMultiplier: isTouch ? 1.0 : 1.5,
-      syncTouch: true,
-      syncTouchLerp: 0.1,
-      infinite: false,
-    });
+    let lenis: Lenis | null = null;
+    let rafId: number = 0;
 
-    lenisRef.current = lenis;
+    // Only initialize Lenis on desktop/fine-pointer devices to allow 120Hz/60Hz native GPU touch scrolling on phones
+    if (!isTouch) {
+      lenis = new Lenis({
+        duration: 1.1,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        orientation: 'vertical',
+        gestureOrientation: 'vertical',
+        smoothWheel: true,
+        wheelMultiplier: 1.0,
+        syncTouch: false,
+        infinite: false,
+      });
 
-    // RAF Loop
-    let rafId: number;
-    function raf(time: number) {
-      lenis.raf(time);
+      lenisRef.current = lenis;
+
+      const raf = (time: number) => {
+        lenis?.raf(time);
+        rafId = requestAnimationFrame(raf);
+      };
       rafId = requestAnimationFrame(raf);
     }
-    rafId = requestAnimationFrame(raf);
 
-    // Global smooth anchor link handler (offsets fixed navbar by 80px)
+    // Global smooth anchor link handler for both mobile (native) and desktop (Lenis)
     const handleAnchorClick = (e: MouseEvent) => {
       const target = (e.target as HTMLElement).closest('a');
       if (!target) return;
@@ -63,11 +64,20 @@ export function useSmoothScroll({ disabled = false, isModalOpen = false }: UseSm
         const targetEl = document.querySelector(href);
         if (targetEl) {
           e.preventDefault();
-          lenis.scrollTo(targetEl as HTMLElement, {
-            offset: -80,
-            duration: 1.3,
-            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-          });
+          if (lenis) {
+            lenis.scrollTo(targetEl as HTMLElement, {
+              offset: -80,
+              duration: 1.2,
+              easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            });
+          } else {
+            const elRect = targetEl.getBoundingClientRect();
+            const topOffset = elRect.top + window.scrollY - 80;
+            window.scrollTo({
+              top: topOffset,
+              behavior: 'smooth',
+            });
+          }
         }
       }
     };
@@ -76,21 +86,26 @@ export function useSmoothScroll({ disabled = false, isModalOpen = false }: UseSm
 
     return () => {
       document.removeEventListener('click', handleAnchorClick);
-      cancelAnimationFrame(rafId);
-      lenis.destroy();
-      lenisRef.current = null;
+      if (rafId) cancelAnimationFrame(rafId);
+      if (lenis) {
+        lenis.destroy();
+        lenisRef.current = null;
+      }
     };
   }, [disabled]);
 
   // Pause or resume scrolling when modals mount or unmount
   useEffect(() => {
-    if (!lenisRef.current) return;
-    if (isModalOpen) {
-      lenisRef.current.stop();
-    } else {
-      lenisRef.current.start();
+    if (lenisRef.current && !disabled) {
+      if (isModalOpen) {
+        lenisRef.current.stop();
+      } else {
+        lenisRef.current.start();
+      }
     }
-  }, [isModalOpen]);
+  }, [isModalOpen, disabled]);
 
   return lenisRef;
 }
+
+

@@ -100,20 +100,27 @@ export const LeadershipSection: React.FC = () => {
           <SectionHeader label="governance" title="Leadership Structure" />
         </motion.div>
 
-        {/* Carousel Container with Edge Gradient Fades */}
-        <div
-          style={{
-            maskImage: 'linear-gradient(to right, transparent, black 6%, black 94%, transparent)',
-            WebkitMaskImage: 'linear-gradient(to right, transparent, black 6%, black 94%, transparent)',
-          }}
-          className="group relative mt-14"
-        >
+        {/* Carousel Container with Zero-Cost Edge Gradient Overlays */}
+        <div className="group relative mt-14">
+          {/* Left Edge Soft Gradient Fade */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 sm:w-16 bg-gradient-to-r from-[#050705] to-transparent"
+          />
+          {/* Right Edge Soft Gradient Fade */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 sm:w-16 bg-gradient-to-l from-[#050705] to-transparent"
+          />
+
           <div
             ref={scrollRef}
             onWheel={handleInteraction}
             onPointerDown={handleInteraction}
+            onTouchStart={handleInteraction}
             onTouchMove={handleInteraction}
-            className="no-scrollbar flex w-full cursor-grab gap-5 overflow-x-auto overscroll-x-contain py-2"
+            onTouchEnd={handleInteraction}
+            className="no-scrollbar flex w-full cursor-grab gap-5 overflow-x-auto overscroll-x-contain py-2 select-none"
           >
             {loopList.map((leader, idx) => (
               <div
@@ -179,6 +186,7 @@ export const LeadershipSection: React.FC = () => {
           </div>
         </div>
       </div>
+
 
       {/* Focused Dossier Modal on Card Click */}
       <LeaderModal leader={selectedLeader} onClose={() => setSelectedLeader(null)} />

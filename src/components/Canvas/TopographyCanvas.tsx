@@ -125,20 +125,31 @@ export const TopographyCanvas: React.FC<TopographyCanvasProps> = ({
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const noise = new ClassicalPerlinNoise(0.42);
-    let columns: WavePoint[][] = [];
+
     let width = 0;
     let height = 0;
+    let numCols = 0;
+    let numRows = 0;
+    let totalPoints = 0;
+    let isMobile = false;
+
+    // High-performance flat buffers (zero garbage collection pauses)
+    let basePositions = new Float32Array(0);
+    let waveOffsets = new Float32Array(0);
 
     const resize = () => {
       const rect = container.getBoundingClientRect();
       width = rect.width || window.innerWidth;
       height = rect.height || window.innerHeight;
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      isMobile = width < 768 || window.matchMedia('(pointer: coarse)').matches;
+
+      // Clamp DPR to 1.0 on mobile devices to drastically reduce fill-rate cost
+      const dpr = isMobile ? 1.0 : Math.min(window.devicePixelRatio || 1, 1.5);
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
       canvas.style.width = `${width}px`;
@@ -147,45 +158,41 @@ export const TopographyCanvas: React.FC<TopographyCanvasProps> = ({
     };
 
     const buildGrid = () => {
-      columns = [];
-      const isMobile = width < 768;
-      const currentXGap = isMobile ? Math.max(xGap * 1.8, 22) : xGap;
-      const currentYGap = isMobile ? Math.max(yGap * 1.25, 44) : yGap;
+      const currentXGap = isMobile ? Math.max(xGap * 2.4, 30) : xGap;
+      const currentYGap = isMobile ? Math.max(yGap * 1.5, 52) : yGap;
 
-      const cols = Math.ceil((width + 160) / currentXGap);
-      const rows = Math.ceil((height + 30) / currentYGap);
-      const startX = (width - currentXGap * cols) / 2;
-      const startY = (height - currentYGap * rows) / 2;
+      numCols = Math.ceil((width + 120) / currentXGap) + 1;
+      numRows = Math.ceil((height + 30) / currentYGap) + 1;
+      totalPoints = numCols * numRows;
 
-      for (let c = 0; c <= cols; c++) {
-        const col: WavePoint[] = [];
-        for (let r = 0; r <= rows; r++) {
-          col.push({
-            x: startX + currentXGap * c,
-            y: startY + currentYGap * r,
-            wave: { x: 0, y: 0 },
-          });
+      basePositions = new Float32Array(totalPoints * 2);
+      waveOffsets = new Float32Array(totalPoints * 2);
+
+      const startX = (width - currentXGap * (numCols - 1)) / 2;
+      const startY = (height - currentYGap * (numRows - 1)) / 2;
+
+      for (let c = 0; c < numCols; c++) {
+        const colX = startX + currentXGap * c;
+        for (let r = 0; r < numRows; r++) {
+          const idx = (c * numRows + r) * 2;
+          basePositions[idx] = colX;
+          basePositions[idx + 1] = startY + currentYGap * r;
         }
-        columns.push(col);
       }
     };
 
     const updateWaves = (time: number) => {
-      const numCols = columns.length;
-      for (let c = 0; c < numCols; c++) {
-        const col = columns[c];
-        const numRows = col.length;
-        for (let r = 0; r < numRows; r++) {
-          const pt = col[r];
-          const n =
-            12 *
-            noise.perlin2(
-              (pt.x + time * waveSpeedX) * 0.002,
-              (pt.y + time * waveSpeedY) * 0.0015
-            );
-          pt.wave.x = Math.cos(n) * waveAmpX;
-          pt.wave.y = Math.sin(n) * waveAmpY;
-        }
+      const timeX = time * waveSpeedX * 0.002;
+      const timeY = time * waveSpeedY * 0.0015;
+
+      for (let i = 0; i < totalPoints; i++) {
+        const idx = i * 2;
+        const bx = basePositions[idx];
+        const by = basePositions[idx + 1];
+
+        const n = 12 * noise.perlin2(bx * 0.002 + timeX, by * 0.0015 + timeY);
+        waveOffsets[idx] = Math.cos(n) * waveAmpX;
+        waveOffsets[idx + 1] = Math.sin(n) * waveAmpY;
       }
     };
 
@@ -199,20 +206,16 @@ export const TopographyCanvas: React.FC<TopographyCanvasProps> = ({
       ctx.strokeStyle = lineColor;
       ctx.lineWidth = 1;
 
-      const numCols = columns.length;
       for (let c = 0; c < numCols; c++) {
-        const col = columns[c];
-        const numRows = col.length;
-        if (numRows === 0) continue;
-
-        let firstX = col[0].x + col[0].wave.x;
-        let firstY = col[0].y + col[0].wave.y;
+        const colStartIdx = c * numRows * 2;
+        const firstX = basePositions[colStartIdx] + waveOffsets[colStartIdx];
+        const firstY = basePositions[colStartIdx + 1] + waveOffsets[colStartIdx + 1];
         ctx.moveTo(firstX, firstY);
 
-        for (let r = 0; r < numRows; r++) {
-          const pt = col[r];
-          const px = pt.x + pt.wave.x;
-          const py = pt.y + pt.wave.y;
+        for (let r = 1; r < numRows; r++) {
+          const idx = (c * numRows + r) * 2;
+          const px = basePositions[idx] + waveOffsets[idx];
+          const py = basePositions[idx + 1] + waveOffsets[idx + 1];
           ctx.lineTo(px, py);
         }
       }
@@ -222,16 +225,24 @@ export const TopographyCanvas: React.FC<TopographyCanvasProps> = ({
 
     let animId = 0;
     let isTabActive = !document.hidden;
+    let lastRenderTime = 0;
+    // On mobile, throttle to 30 FPS for buttery smoothness without CPU throttling; 60 FPS on desktop
+    const frameInterval = isMobile ? 33.3 : 16.6;
 
     resize();
     buildGrid();
 
-    const render = (time: number) => {
-      if (isTabActive) {
-        updateWaves(time);
-        draw();
-      }
+    const render = (currentTime: number) => {
       animId = requestAnimationFrame(render);
+
+      if (!isTabActive) return;
+
+      const elapsed = currentTime - lastRenderTime;
+      if (elapsed < frameInterval) return;
+
+      lastRenderTime = currentTime - (elapsed % frameInterval);
+      updateWaves(currentTime);
+      draw();
     };
 
     if (prefersReducedMotion) {
@@ -245,9 +256,17 @@ export const TopographyCanvas: React.FC<TopographyCanvasProps> = ({
       isTabActive = !document.hidden;
     };
 
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
     const onResize = () => {
-      resize();
-      buildGrid();
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        resize();
+        buildGrid();
+        if (prefersReducedMotion) {
+          updateWaves(0);
+          draw();
+        }
+      }, 150);
     };
 
     window.addEventListener('resize', onResize, { passive: true });
@@ -255,10 +274,12 @@ export const TopographyCanvas: React.FC<TopographyCanvasProps> = ({
 
     return () => {
       cancelAnimationFrame(animId);
+      if (resizeTimer) clearTimeout(resizeTimer);
       window.removeEventListener('resize', onResize);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [lineColor, backgroundColor, waveSpeedX, waveSpeedY, waveAmpX, waveAmpY, xGap, yGap]);
+
 
   return (
     <div

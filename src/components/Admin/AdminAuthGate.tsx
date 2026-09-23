@@ -83,15 +83,16 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({ onAuthenticated, o
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050705]/95 backdrop-blur-xl p-4 sm:p-6 font-mono">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050705]/95 backdrop-blur-xl p-4 sm:p-6 font-mono overflow-y-auto">
       {/* Decorative Background Grid Pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#00ff4108_1px,transparent_1px),linear-gradient(to_bottom,#00ff4108_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.94, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="relative w-full max-w-md overflow-hidden rounded-2xl border border-[#00ff41]/50 bg-[#080d08] p-6 sm:p-8 shadow-[0_0_60px_rgba(0,255,65,0.25)]"
+        className="relative my-auto w-full max-w-md overflow-hidden rounded-2xl border border-[#00ff41]/50 bg-[#080d08] p-6 sm:p-8 shadow-[0_0_60px_rgba(0,255,65,0.25)]"
       >
+
         {/* Top Scanline effect */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#00ff41] to-transparent animate-pulse" />
 

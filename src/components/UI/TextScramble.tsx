@@ -72,45 +72,52 @@ export const TextScramble: React.FC<TextScrambleProps> = ({
     }
 
     let isCancelled = false;
-    const totalFrames = text.length + 12;
+    let animId = 0;
+    const totalFrames = text.length + 10;
     progressRef.current = 0;
+    let lastStepTime = 0;
 
     const startTimeout = window.setTimeout(() => {
-      const step = () => {
+      const step = (time: number) => {
         if (isCancelled) return;
 
-        const currentProg = progressRef.current;
-        let scrambled = '';
+        if (time - lastStepTime >= speed) {
+          lastStepTime = time;
+          const currentProg = progressRef.current;
+          let scrambled = '';
 
-        for (let i = 0; i < text.length; i++) {
-          if (i < currentProg - 12) {
-            scrambled += text[i];
-          } else if (text[i] === ' ') {
-            scrambled += ' ';
-          } else {
-            scrambled += SCRAMBLE_GLYPHS[Math.floor(Math.random() * SCRAMBLE_GLYPHS.length)];
+          for (let i = 0; i < text.length; i++) {
+            if (i < currentProg - 8) {
+              scrambled += text[i];
+            } else if (text[i] === ' ') {
+              scrambled += ' ';
+            } else {
+              scrambled += SCRAMBLE_GLYPHS[Math.floor(Math.random() * SCRAMBLE_GLYPHS.length)];
+            }
+          }
+
+          setDisplayText(scrambled);
+          progressRef.current += 1;
+
+          if (progressRef.current > totalFrames) {
+            setDisplayText(text);
+            return;
           }
         }
 
-        setDisplayText(scrambled);
-        progressRef.current += 1;
-
-        if (progressRef.current <= totalFrames) {
-          timerRef.current = window.setTimeout(step, speed);
-        } else {
-          setDisplayText(text);
-        }
+        animId = requestAnimationFrame(step);
       };
 
-      step();
+      animId = requestAnimationFrame(step);
     }, delay);
 
     return () => {
       isCancelled = true;
       clearTimeout(startTimeout);
-      clearTimeout(timerRef.current);
+      if (animId) cancelAnimationFrame(animId);
     };
   }, [triggered, text, speed, delay]);
+
 
   const Component = Tag as any;
 
