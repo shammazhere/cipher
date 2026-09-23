@@ -10,6 +10,7 @@ export interface LeaderData {
   image?: string;
   github?: string;
   linkedin?: string;
+  email?: string;
   bio?: string;
   tenure?: string;
 }
@@ -75,22 +76,29 @@ export const LeaderModal: React.FC<LeaderModalProps> = ({ leader, onClose }) => 
               <span className="font-display text-xl leading-tight text-foreground">
                 {leader.name}
               </span>
+              {/* Social Action Triggers */}
               <div className="mt-3 flex items-center gap-4">
                 <a
-                  href={leader.github || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={leader.github || ''}
+                  target={leader.github ? '_blank' : undefined}
+                  rel={leader.github ? 'noopener noreferrer' : undefined}
+                  onClick={(e) => {
+                    if (!leader.github) e.preventDefault();
+                  }}
                   aria-label={`${leader.name} on GitHub`}
-                  className="text-muted-foreground transition-colors hover:text-[var(--matrix)]"
+                  className="text-muted-foreground transition-colors hover:text-[var(--matrix)] cursor-pointer"
                 >
                   <Github size={22} />
                 </a>
                 <a
-                  href={leader.linkedin || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={leader.linkedin || ''}
+                  target={leader.linkedin ? '_blank' : undefined}
+                  rel={leader.linkedin ? 'noopener noreferrer' : undefined}
+                  onClick={(e) => {
+                    if (!leader.linkedin) e.preventDefault();
+                  }}
                   aria-label={`${leader.name} on LinkedIn`}
-                  className="text-muted-foreground transition-colors hover:text-[var(--matrix)]"
+                  className="text-muted-foreground transition-colors hover:text-[var(--matrix)] cursor-pointer"
                 >
                   <Linkedin size={22} />
                 </a>

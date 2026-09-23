@@ -14,15 +14,21 @@ import { handleImageError } from '../../utils/imageFallback';
  * - Mobile responsive drawer.
  */
 
+interface NavbarProps {
+  currentPage?: string;
+  onNavigate?: (page: string) => void;
+}
+
 const NAV_ITEMS = [
-  { label: 'Home', href: '#top' },
-  { label: 'About', href: '#about' },
-  { label: 'Leadership', href: '#leadership' },
-  { label: 'Events', href: '#events' },
-  { label: 'Join', href: '#join' },
+  { label: 'Home', page: 'home', href: '/' },
+  { label: 'About', page: 'about', href: '/#about' },
+  { label: 'Events', page: 'events', href: '/events' },
+  { label: 'Activities', page: 'activities', href: '/activities' },
+  { label: 'Leadership', page: 'leadership', href: '/leadership' },
+  { label: 'Join', page: 'join', href: '/#join' },
 ];
 
-export const Navbar: React.FC = () => {
+export const Navbar: React.FC<NavbarProps> = ({ currentPage = 'home', onNavigate }) => {
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
@@ -35,6 +41,14 @@ export const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const handleLinkClick = (e: React.MouseEvent, item: typeof NAV_ITEMS[0]) => {
+    if (onNavigate) {
+      e.preventDefault();
+      onNavigate(item.page);
+      setMobileMenuOpen(false);
+    }
+  };
+
   return (
     <header
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
@@ -45,7 +59,18 @@ export const Navbar: React.FC = () => {
     >
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
         {/* Emblem Logo */}
-        <a href="#top" className="-ml-2 flex items-center md:-ml-4" aria-label="CIPHER home" data-cursor="lens">
+        <a
+          href="/"
+          onClick={(e) => {
+            if (onNavigate) {
+              e.preventDefault();
+              onNavigate('home');
+            }
+          }}
+          className="-ml-2 flex items-center md:-ml-4 cursor-pointer"
+          aria-label="CIPHER home"
+          data-cursor="lens"
+        >
           <img
             src="/images/cipher-logo.webp"
             alt="CIPHER"
@@ -55,24 +80,42 @@ export const Navbar: React.FC = () => {
         </a>
 
         {/* Desktop Links */}
-        <ul className="hidden items-center gap-8 md:flex">
-          {NAV_ITEMS.map((item) => (
-            <li key={item.href}>
-              <a
-                href={item.href}
-                className="group relative font-mono text-sm uppercase tracking-wider text-muted-foreground transition-colors hover:text-[var(--matrix)]"
-                data-cursor="lens"
-              >
-                {item.label}
-                <span className="absolute -bottom-1 left-0 h-px w-0 bg-[var(--matrix)] shadow-[0_0_8px_var(--matrix-glow)] transition-all duration-300 group-hover:w-full" />
-              </a>
-            </li>
-          ))}
+        <ul className="hidden items-center gap-7 md:flex">
+          {NAV_ITEMS.map((item) => {
+            const isActive = currentPage === item.page;
+            return (
+              <li key={item.page}>
+                <a
+                  href={item.href}
+                  onClick={(e) => handleLinkClick(e, item)}
+                  className={`group relative font-mono text-sm uppercase tracking-wider transition-colors ${
+                    isActive
+                      ? 'text-[var(--matrix)] font-bold text-glow'
+                      : 'text-muted-foreground hover:text-[var(--matrix)]'
+                  }`}
+                  data-cursor="lens"
+                >
+                  {item.label}
+                  <span
+                    className={`absolute -bottom-1 left-0 h-px bg-[var(--matrix)] shadow-[0_0_8px_var(--matrix-glow)] transition-all duration-300 ${
+                      isActive ? 'w-full' : 'w-0 group-hover:w-full'
+                    }`}
+                  />
+                </a>
+              </li>
+            );
+          })}
         </ul>
 
         {/* Action Button */}
         <a
-          href="#join"
+          href="/#join"
+          onClick={(e) => {
+            if (onNavigate) {
+              e.preventDefault();
+              onNavigate('join');
+            }
+          }}
           className="hidden rounded-md border border-[var(--matrix)] px-4 py-2 font-mono text-xs uppercase tracking-wider text-[var(--matrix)] transition-colors hover:bg-[rgba(0,255,65,0.1)] md:inline-block"
           data-cursor="lens"
         >
@@ -95,17 +138,24 @@ export const Navbar: React.FC = () => {
       {mobileMenuOpen && (
         <div className="border-t border-[var(--border)] bg-[#050705]/95 backdrop-blur-md md:hidden">
           <ul className="flex flex-col px-5 py-4">
-            {NAV_ITEMS.map((item) => (
-              <li key={item.href}>
-                <a
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block py-3 font-mono text-sm uppercase tracking-wider text-muted-foreground transition-colors hover:text-[var(--matrix)]"
-                >
-                  {item.label}
-                </a>
-              </li>
-            ))}
+            {NAV_ITEMS.map((item) => {
+              const isActive = currentPage === item.page;
+              return (
+                <li key={item.page}>
+                  <a
+                    href={item.href}
+                    onClick={(e) => handleLinkClick(e, item)}
+                    className={`block py-3 font-mono text-sm uppercase tracking-wider transition-colors ${
+                      isActive
+                        ? 'text-[var(--matrix)] font-bold text-glow'
+                        : 'text-muted-foreground hover:text-[var(--matrix)]'
+                    }`}
+                  >
+                    {item.label}
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

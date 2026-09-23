@@ -190,7 +190,7 @@ const formatEventToGalleryData = (event: EventItem): GalleryModalData => ({
   images: event.images && event.images.length > 0 ? event.images : ['/lumiere/website_photo_1.webp'],
 });
 
-export const EventsSection: React.FC = () => {
+export const EventsSection: React.FC<{ onNavigate?: (page: string) => void }> = ({ onNavigate }) => {
   const [activeModalData, setActiveModalData] = useState<GalleryModalData | null>(null);
   const [activeEventIndex, setActiveEventIndex] = useState<number>(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -224,8 +224,20 @@ export const EventsSection: React.FC = () => {
   return (
     <section id="events" className="relative border-t border-[var(--border)] py-24">
       <div className="mx-auto max-w-6xl px-5">
-        {/* Header */}
-        <SectionHeader label="activities" title="Events & Workshops" />
+        {/* Header with Dedicated Page Link */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <SectionHeader label="activities" title="Events & Workshops" />
+          {onNavigate && (
+            <button
+              type="button"
+              onClick={() => onNavigate('events')}
+              data-cursor="lens"
+              className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-[var(--matrix)] hover:underline self-start sm:self-auto mb-2"
+            >
+              <span>Explore All Events &rarr;</span>
+            </button>
+          )}
+        </div>
 
         {/* Flagship Event & Workshop Cards with Mobile Horizontal Scroll & Desktop Grid */}
         <div className="relative mt-12">
@@ -289,7 +301,19 @@ export const EventsSection: React.FC = () => {
 
         {/* Activities Archive */}
         <div className="mt-20">
-          <SectionHeader label="archive" title="Activities" />
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <SectionHeader label="archive" title="Activities" />
+            {onNavigate && (
+              <button
+                type="button"
+                onClick={() => onNavigate('activities')}
+                data-cursor="lens"
+                className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-[var(--matrix)] hover:underline self-start sm:self-auto mb-2"
+              >
+                <span>Browse Full Activities Archive ({activities.length}) &rarr;</span>
+              </button>
+            )}
+          </div>
 
           <p className="mt-4 max-w-2xl font-mono text-sm leading-relaxed text-muted-foreground">
             Hands-on workshops, industrial visits, and technical sessions run by the Cipher
@@ -297,8 +321,8 @@ export const EventsSection: React.FC = () => {
           </p>
 
           <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {activities.map((activity, idx) => {
-              const linkHref = activity.href || 'https://sjec.ac.in/cipher';
+            {activities.slice(0, 9).map((activity, idx) => {
+              const hasLink = Boolean(activity.href && activity.href.trim().length > 0);
               return (
                 <motion.div
                   key={`${activity.id || activity.title}-${idx}`}
@@ -307,11 +331,7 @@ export const EventsSection: React.FC = () => {
                   viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: (idx % 3) * 0.05 }}
                 >
-                  <a
-                    href={linkHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-cursor="lens"
+                  <div
                     className="group flex h-full items-start justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)]/50 p-4 transition-all duration-300 hover:border-[var(--matrix)] hover:box-glow"
                   >
                     <div className="flex items-start gap-3">
@@ -322,15 +342,40 @@ export const EventsSection: React.FC = () => {
                         {activity.title}
                       </h3>
                     </div>
-                    <ArrowUpRight
-                      size={15}
-                      className="mt-0.5 shrink-0 text-muted-foreground transition-colors group-hover:text-[var(--matrix)]"
-                    />
-                  </a>
+                    {hasLink ? (
+                      <a
+                        href={activity.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Open link for ${activity.title}`}
+                        className="mt-0.5 shrink-0 text-muted-foreground transition-colors hover:text-[var(--matrix)]"
+                      >
+                        <ArrowUpRight size={15} />
+                      </a>
+                    ) : (
+                      <span className="mt-0.5 shrink-0 font-mono text-[9px] text-[var(--matrix-dim)]">
+                        CPH
+                      </span>
+                    )}
+                  </div>
                 </motion.div>
               );
             })}
           </div>
+
+          {activities.length > 9 && onNavigate && (
+            <div className="mt-8 text-center">
+              <button
+                type="button"
+                onClick={() => onNavigate('activities')}
+                data-cursor="lens"
+                className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--card)] px-6 py-3 font-mono text-xs uppercase tracking-wider text-foreground hover:border-[var(--matrix)] hover:text-[var(--matrix)] transition-all"
+              >
+                <span>View All {activities.length} Department Activities</span>
+                <ArrowUpRight size={15} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

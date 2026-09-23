@@ -16,7 +16,7 @@ import defaultLeadership from '../../data/leadership.json';
  * dossier modal on click.
  */
 
-export const LeadershipSection: React.FC = () => {
+export const LeadershipSection: React.FC<{ onNavigate?: (page: string) => void }> = ({ onNavigate }) => {
   const { leadership: contextLeadership } = useData();
   const [selectedLeader, setSelectedLeader] = useState<LeaderData | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -91,14 +91,26 @@ export const LeadershipSection: React.FC = () => {
     <section id="leadership" className="relative border-t border-[var(--border)] py-24">
       <div className="mx-auto max-w-7xl px-5">
         {/* Section Tag & Heading */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.25 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <SectionHeader label="governance" title="Leadership Structure" />
-        </motion.div>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.25 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <SectionHeader label="leadership" title="Leadership Structure" />
+          </motion.div>
+          {onNavigate && (
+            <button
+              type="button"
+              onClick={() => onNavigate('leadership')}
+              data-cursor="lens"
+              className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-[var(--matrix)] hover:underline self-start sm:self-auto mb-2"
+            >
+              <span>View Full Directory &rarr;</span>
+            </button>
+          )}
+        </div>
 
         {/* Carousel Container with Zero-Cost Edge Gradient Overlays */}
         <div className="group relative mt-14">
@@ -160,22 +172,28 @@ export const LeadershipSection: React.FC = () => {
                   </h3>
                   <div className="mt-2 flex items-center gap-3">
                     <a
-                      href={leader.github || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
+                      href={leader.github || ''}
+                      target={leader.github ? '_blank' : undefined}
+                      rel={leader.github ? 'noopener noreferrer' : undefined}
+                      onClick={(e) => {
+                        if (!leader.github) e.preventDefault();
+                        e.stopPropagation();
+                      }}
                       aria-label={`${leader.name} on GitHub`}
-                      className="text-muted-foreground transition-colors hover:text-[var(--matrix)]"
+                      className="text-muted-foreground transition-colors hover:text-[var(--matrix)] cursor-pointer"
                     >
                       <Github size={20} />
                     </a>
                     <a
-                      href={leader.linkedin || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
+                      href={leader.linkedin || ''}
+                      target={leader.linkedin ? '_blank' : undefined}
+                      rel={leader.linkedin ? 'noopener noreferrer' : undefined}
+                      onClick={(e) => {
+                        if (!leader.linkedin) e.preventDefault();
+                        e.stopPropagation();
+                      }}
                       aria-label={`${leader.name} on LinkedIn`}
-                      className="text-muted-foreground transition-colors hover:text-[var(--matrix)]"
+                      className="text-muted-foreground transition-colors hover:text-[var(--matrix)] cursor-pointer"
                     >
                       <Linkedin size={20} />
                     </a>

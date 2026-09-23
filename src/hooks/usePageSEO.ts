@@ -30,16 +30,28 @@ const PAGE_SEO_METADATA: Record<string, SEOConfig> = {
     canonicalPath: '#about',
   },
   events: {
-    title: 'Events & Workshops — Lumiere, PromptOps & Archive | CIPHER SJEC',
-    description: 'Explore upcoming and past flagship events hosted by CIPHER, including the Lumiere annual gala, PromptOps competition, and an archive of 17+ technical symposiums.',
+    title: 'Events & Workshops — Lumière, PromptOps & Competitions | CIPHER SJEC',
+    description: 'Explore upcoming and past flagship events hosted by CIPHER, including the Lumière branch entry gala, PromptOps AI competition, and technical hackathons.',
     keywords: 'CIPHER Events, Lumiere, PromptOps, Technical Workshops, Hackathons, CSE SJEC',
-    canonicalPath: '#events',
+    canonicalPath: '/events',
+  },
+  activities: {
+    title: 'Activities Archive — 17+ Department Workshops & Sessions | CIPHER SJEC',
+    description: 'Browse the complete archive of technical sessions, hands-on workshops, industrial visits, and guest lectures conducted by the CIPHER Association.',
+    keywords: 'CIPHER Activities, Workshops, Machine Learning, Blockchain, Web Dev, SJEC CSE Archive',
+    canonicalPath: '/activities',
+  },
+  leadership: {
+    title: 'Governance & Leadership Structure — Executive Council | CIPHER SJEC',
+    description: 'Meet the faculty mentors, student office bearers, and domain executive heads guiding the CIPHER Student Association at SJEC.',
+    keywords: 'CIPHER Leadership, Executive Council, President, Office Bearers, Faculty Mentors, SJEC CSE',
+    canonicalPath: '/leadership',
   },
   team: {
     title: 'Executive Council & Leadership — Governance | CIPHER SJEC',
     description: 'Meet the elected student leaders and faculty mentors guiding CIPHER. Review the Student Association election charter and governance bylaws.',
     keywords: 'CIPHER Team, Executive Council, Student Leadership, President, Vice President, SJEC CSE',
-    canonicalPath: '#team',
+    canonicalPath: '/leadership',
   },
   join: {
     title: 'Join CIPHER — Student Association Membership & Contact | SJEC',

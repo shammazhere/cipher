@@ -131,11 +131,38 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase.from('club_content').select('*');
       if (!error && data && data.length > 0) {
         data.forEach((row: { key: string; value: unknown }) => {
-          if (row.key === 'leadership' && Array.isArray(row.value)) setLeadership(row.value as Leader[]);
+          if (row.key === 'leadership' && Array.isArray(row.value)) {
+            setLeadership(
+              (row.value as Leader[]).map((l) => ({
+                ...l,
+                github: (l.github === 'https://github.com' || l.github === '#' || !l.github) ? '' : l.github,
+                linkedin: (l.linkedin === 'https://linkedin.com' || l.linkedin === '#' || !l.linkedin) ? '' : l.linkedin,
+                email: (l.email?.includes('.cip@sjec.ac.in') || !l.email) ? '' : l.email,
+              }))
+            );
+          }
           if (row.key === 'events' && Array.isArray(row.value)) setEvents(row.value as EventItem[]);
-          if (row.key === 'archive' && Array.isArray(row.value)) setArchive(row.value as ArchiveItem[]);
+          if (row.key === 'archive' && Array.isArray(row.value)) {
+            setArchive(
+              (row.value as ArchiveItem[]).map((a) => ({
+                ...a,
+                href: (a.href?.includes('https://sjec.ac.in') || a.href === '#' || !a.href) ? '' : a.href,
+              }))
+            );
+          }
           if (row.key === 'domains' && Array.isArray(row.value)) setDomains(row.value as DomainItem[]);
-          if (row.key === 'siteConfig' && row.value) setSiteConfig(row.value as SiteConfig);
+          if (row.key === 'siteConfig' && row.value) {
+            const sc = row.value as SiteConfig;
+            setSiteConfig({
+              ...sc,
+              socialLinks: {
+                email: (sc.socialLinks?.email === 'cipher@sjec.ac.in' || !sc.socialLinks?.email) ? '' : sc.socialLinks.email,
+                linkedin: (sc.socialLinks?.linkedin === 'https://linkedin.com' || !sc.socialLinks?.linkedin) ? '' : sc.socialLinks.linkedin,
+                github: (sc.socialLinks?.github === 'https://github.com' || !sc.socialLinks?.github) ? '' : sc.socialLinks.github,
+                instagram: (sc.socialLinks?.instagram === 'https://instagram.com' || !sc.socialLinks?.instagram) ? '' : sc.socialLinks.instagram,
+              },
+            });
+          }
         });
       }
     } catch (err) {

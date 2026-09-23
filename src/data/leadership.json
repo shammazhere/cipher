@@ -5,9 +5,9 @@
     "role": "President",
     "image": "/leadership/president.webp",
     "bio": "Leading CIPHER with a focus on student-driven innovation, technical hackathons, and fostering an active engineering community in the CSE department.",
-    "github": "https://github.com",
-    "linkedin": "https://linkedin.com",
-    "email": "elston.cip@sjec.ac.in"
+    "github": "",
+    "linkedin": "",
+    "email": ""
   },
   {
     "id": "raynell",
@@ -15,9 +15,9 @@
     "role": "Vice President",
     "image": "/leadership/vice-president.webp",
     "bio": "Coordinating inter-departmental tech symposiums, workshop curriculum planning, and industry liaison activities.",
-    "github": "https://github.com",
-    "linkedin": "https://linkedin.com",
-    "email": "raynell.cip@sjec.ac.in"
+    "github": "",
+    "linkedin": "",
+    "email": ""
   },
   {
     "id": "chaitra",
@@ -25,9 +25,9 @@
     "role": "Secretary",
     "image": "/leadership/secretary.webp",
     "bio": "Managing official communications, student registrations, documentation, and executive proceedings for all association tracks.",
-    "github": "https://github.com",
-    "linkedin": "https://linkedin.com",
-    "email": "chaitra.cip@sjec.ac.in"
+    "github": "",
+    "linkedin": "",
+    "email": ""
   },
   {
     "id": "nazmin",
@@ -35,9 +35,9 @@
     "role": "Treasurer",
     "image": "/leadership/treasurer.webp",
     "bio": "Overseeing financial allocations, event budgets, sponsorship receipts, and funding audits for Cipher events.",
-    "github": "https://github.com",
-    "linkedin": "https://linkedin.com",
-    "email": "nazmin.cip@sjec.ac.in"
+    "github": "",
+    "linkedin": "",
+    "email": ""
   },
   {
     "id": "jeslin",
@@ -45,9 +45,9 @@
     "role": "Joint Treasurer",
     "image": "/leadership/joint-treasurer.webp",
     "bio": "Assisting in financial management, procurement of workshop equipment, and student activity fund distribution.",
-    "github": "https://github.com",
-    "linkedin": "https://linkedin.com",
-    "email": "jeslin.cip@sjec.ac.in"
+    "github": "",
+    "linkedin": "",
+    "email": ""
   },
   {
     "id": "content-head",
@@ -55,19 +55,19 @@
     "role": "Content Head",
     "image": "/leadership/content-head.webp",
     "bio": "Spearheading departmental publications, technical write-ups, event reporting, and social communications for CIPHER.",
-    "github": "https://github.com",
-    "linkedin": "https://linkedin.com",
-    "email": "parthipan.cip@sjec.ac.in"
+    "github": "",
+    "linkedin": "",
+    "email": ""
   },
   {
     "id": "cultural-head",
     "name": "Shamitha KV",
     "role": "Cultural Head",
     "image": "/leadership/cultural-head.webp",
-    "bio": "Directing cultural engagements, branch entry programmes (Lumi\u00e8re), creative performances, and community celebrations.",
-    "github": "https://github.com",
-    "linkedin": "https://linkedin.com",
-    "email": "cultural.cip@sjec.ac.in"
+    "bio": "Directing cultural engagements, branch entry programmes (Lumière), creative performances, and community celebrations.",
+    "github": "",
+    "linkedin": "",
+    "email": ""
   },
   {
     "id": "design-head",
@@ -75,9 +75,9 @@
     "role": "Design Head",
     "image": "/leadership/design-head.webp",
     "bio": "Overseeing visual identity, UI/UX design systems, event posters, digital branding, and stage aesthetics.",
-    "github": "https://github.com",
-    "linkedin": "https://linkedin.com",
-    "email": "design.cip@sjec.ac.in"
+    "github": "",
+    "linkedin": "",
+    "email": ""
   },
   {
     "id": "operations-head",
@@ -85,8 +85,8 @@
     "role": "Operations Head",
     "image": "/leadership/operations-head.webp",
     "bio": "Managing venue logistics, technical lab infrastructure, workshop setup, and operational coordination during events.",
-    "github": "https://github.com",
-    "linkedin": "https://linkedin.com",
-    "email": "operations.cip@sjec.ac.in"
+    "github": "",
+    "linkedin": "",
+    "email": ""
   }
 ]

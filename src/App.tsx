@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { DataProvider } from './context/DataContext';
 import { ToastProvider } from './context/ToastContext';
 import { MatrixBoot } from './components/Preloader/MatrixBoot';
@@ -12,6 +12,9 @@ import { AboutSection } from './components/Sections/AboutSection';
 import { LeadershipSection } from './components/Sections/LeadershipSection';
 import { EventsSection } from './components/Sections/EventsSection';
 import { JoinSection } from './components/Sections/JoinSection';
+import { EventsPage } from './components/Pages/EventsPage';
+import { ActivitiesPage } from './components/Pages/ActivitiesPage';
+import { LeadershipPage } from './components/Pages/LeadershipPage';
 import { Footer } from './components/UI/Footer';
 import { ErrorBoundary } from './components/UI/ErrorBoundary';
 import { CyberToastContainer } from './components/UI/CyberToastContainer';
@@ -45,15 +48,20 @@ const isAdminOnlyMode = Boolean(
   (typeof window !== 'undefined' && window.location.hostname.startsWith('admin.'))
 );
 
-const checkIsAdminRoute = (): boolean => {
+const parseCurrentRoute = (): string => {
+  if (isAdminOnlyMode) return 'admin';
   try {
-    if (isAdminOnlyMode) return true;
-    const hash = window.location.hash.replace('#', '').replace(/^\/+/, '').toLowerCase();
-    if (hash === 'admin') return true;
     const path = window.location.pathname.replace(/^\/+/, '').toLowerCase();
-    return path === 'admin';
+    const hash = window.location.hash.replace('#', '').replace(/^\/+/, '').toLowerCase();
+
+    if (path === 'admin' || hash === 'admin') return 'admin';
+    if (path === 'events' || hash === 'events-page' || hash === 'events') return 'events';
+    if (path === 'activities' || hash === 'activities-page' || hash === 'activities') return 'activities';
+    if (path === 'leadership' || path === 'team' || hash === 'leadership-page' || hash === 'leadership') return 'leadership';
+
+    return 'home';
   } catch {
-    return false;
+    return 'home';
   }
 };
 
@@ -66,17 +74,87 @@ export const AppContent: React.FC = () => {
     }
   });
 
-  const [isAdmin, setIsAdmin] = useState<boolean>(checkIsAdminRoute);
+  const [currentPage, setCurrentPage] = useState<string>(parseCurrentRoute);
   const { isAuthenticated, refreshAuth, logout: handleAdminLogout } = useAdminAuth();
+  const isAdmin = currentPage === 'admin';
 
-  // Listen for hash changes to support #admin
+  // Listen for browser back/forward and hash changes
   useEffect(() => {
-    const handleHashChange = () => {
-      setIsAdmin(checkIsAdminRoute());
+    const handleLocationChange = () => {
+      setCurrentPage(parseCurrentRoute());
     };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
   }, []);
+
+  const handleNavigate = (page: string) => {
+    if (page === 'admin') {
+      window.history.pushState(null, '', '/admin');
+      setCurrentPage('admin');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (page === 'events') {
+      window.history.pushState(null, '', '/events');
+      setCurrentPage('events');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (page === 'activities') {
+      window.history.pushState(null, '', '/activities');
+      setCurrentPage('activities');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (page === 'leadership') {
+      window.history.pushState(null, '', '/leadership');
+      setCurrentPage('leadership');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (page === 'about') {
+      if (currentPage !== 'home') {
+        window.history.pushState(null, '', '/#about');
+        setCurrentPage('home');
+        setTimeout(() => {
+          const el = document.getElementById('about');
+          el?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      } else {
+        const el = document.getElementById('about');
+        el?.scrollIntoView({ behavior: 'smooth' });
+      }
+      return;
+    }
+
+    if (page === 'join') {
+      if (currentPage !== 'home') {
+        window.history.pushState(null, '', '/#join');
+        setCurrentPage('home');
+        setTimeout(() => {
+          const el = document.getElementById('join');
+          el?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      } else {
+        const el = document.getElementById('join');
+        el?.scrollIntoView({ behavior: 'smooth' });
+      }
+      return;
+    }
+
+    // Default 'home'
+    window.history.pushState(null, '', '/');
+    setCurrentPage('home');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Lock scroll during preloader only on public view
   useEffect(() => {
@@ -93,14 +171,13 @@ export const AppContent: React.FC = () => {
   }, [bootSeen, isAdmin]);
 
   // Dynamic SEO metadata
-  usePageSEO(isAdmin ? 'admin' : 'home');
+  usePageSEO(currentPage);
 
   // Inertial smooth scroll (disabled completely in admin)
   useSmoothScroll({
     disabled: isAdmin,
     isModalOpen: !bootSeen && !isAdmin,
   });
-
 
   return (
     <div className="relative min-h-screen bg-[#050705] text-[#c8f7d0] selection:bg-[#00ff41] selection:text-[#050705]">
@@ -113,14 +190,13 @@ export const AppContent: React.FC = () => {
           <div className="mx-auto max-w-7xl">
             <div className="mb-6 flex items-center justify-between border-b border-[#123a17] pb-4">
               <a
-                href={isAdminOnlyMode && import.meta.env.VITE_PUBLIC_SITE_URL ? import.meta.env.VITE_PUBLIC_SITE_URL : '#top'}
+                href={isAdminOnlyMode && import.meta.env.VITE_PUBLIC_SITE_URL ? import.meta.env.VITE_PUBLIC_SITE_URL : '/'}
                 onClick={(e) => {
                   if (isAdminOnlyMode && import.meta.env.VITE_PUBLIC_SITE_URL) {
                     return;
                   }
                   e.preventDefault();
-                  window.history.pushState(null, '', '/');
-                  setIsAdmin(false);
+                  handleNavigate('home');
                 }}
                 className="font-mono text-xs uppercase tracking-wider text-[#00ff41] hover:underline"
               >
@@ -136,8 +212,7 @@ export const AppContent: React.FC = () => {
                     if (isAdminOnlyMode && import.meta.env.VITE_PUBLIC_SITE_URL) {
                       window.location.href = import.meta.env.VITE_PUBLIC_SITE_URL;
                     } else {
-                      window.history.pushState(null, '', '/');
-                      setIsAdmin(false);
+                      handleNavigate('home');
                     }
                   }}
                 />
@@ -148,8 +223,7 @@ export const AppContent: React.FC = () => {
                     if (isAdminOnlyMode && import.meta.env.VITE_PUBLIC_SITE_URL) {
                       window.location.href = import.meta.env.VITE_PUBLIC_SITE_URL;
                     } else {
-                      window.history.pushState(null, '', '/');
-                      setIsAdmin(false);
+                      handleNavigate('home');
                     }
                   }}
                 />
@@ -158,7 +232,7 @@ export const AppContent: React.FC = () => {
           </div>
         </div>
       ) : (
-        /* Main Single-Page Experience (Exact Match with Reference Video) */
+        /* Public Portal View */
         <>
           {/* Custom Interactive Cursor */}
           <CustomCursor />
@@ -174,7 +248,7 @@ export const AppContent: React.FC = () => {
             <TopographyCanvas style={{ position: 'fixed' }} />
           </div>
 
-          {/* Main Continuous Single-Page Layout */}
+          {/* Main Layout */}
           <motion.main
             id="main-content"
             className="relative z-10"
@@ -182,12 +256,26 @@ export const AppContent: React.FC = () => {
             animate={{ opacity: bootSeen ? 1 : 0 }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
           >
-            <Navbar />
-            <HeroSection />
-            <AboutSection />
-            <LeadershipSection />
-            <EventsSection />
-            <JoinSection />
+            <Navbar currentPage={currentPage} onNavigate={handleNavigate} />
+
+            {/* Dedicated Page Views or Home Multi-Section Flow */}
+            {currentPage === 'events' ? (
+              <EventsPage onNavigate={handleNavigate} />
+            ) : currentPage === 'activities' ? (
+              <ActivitiesPage onNavigate={handleNavigate} />
+            ) : currentPage === 'leadership' ? (
+              <LeadershipPage onNavigate={handleNavigate} />
+            ) : (
+              /* Home Page */
+              <>
+                <HeroSection />
+                <AboutSection />
+                <LeadershipSection onNavigate={handleNavigate} />
+                <EventsSection onNavigate={handleNavigate} />
+                <JoinSection />
+              </>
+            )}
+
             <Footer />
           </motion.main>
         </>

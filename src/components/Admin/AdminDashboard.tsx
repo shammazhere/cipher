@@ -471,8 +471,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                     role: 'EXECUTIVE MEMBER',
                     image: '/leadership/president.webp',
                     bio: 'Executive team member dedicated to CIPHER operations.',
-                    github: 'https://github.com',
-                    linkedin: 'https://linkedin.com',
+                    github: '',
+                    linkedin: '',
                   };
                   addLeader(newLead);
                   setEditingLeader(newLead);
@@ -584,7 +584,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToSite, on
                   setEditingActivity({
                     id: idNum,
                     title: '',
-                    href: 'https://sjec.ac.in',
+                    href: '',
                   });
                   setIsNewActivity(true);
                 }}
