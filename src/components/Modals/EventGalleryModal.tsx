@@ -42,10 +42,11 @@ const slideVariants = {
 export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, event, onClose }) => {
   const [[page, direction], setPage] = useState<[number, number]>([0, 0]);
 
-  // Touch swipe gesture refs
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
-  const isHorizontalSwipe = useRef<boolean>(false);
+  // Universal pointer & touch gesture refs (works for mouse, trackpad, and touchscreen)
+  const dragStartX = useRef<number | null>(null);
+  const dragStartY = useRef<number | null>(null);
+  const isDragging = useRef<boolean>(false);
+  const isHorizontalGesture = useRef<boolean>(false);
 
   const activeData: GalleryModalData | null = data || (event ? {
     slug: event.tag ? event.tag.toUpperCase().replace(/\s+/g, '_') : 'EVENT',
@@ -109,40 +110,52 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
     setPage([0, 0]);
   }, [activeData]);
 
-  // High-performance touch handlers:
-  // Discriminates between horizontal swipe (photo change) and vertical scroll (page scrolling)
-  // Ensures 100% native momentum vertical scrolling without getting trapped
-  const onTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-    isHorizontalSwipe.current = false;
+  // Universal pointer & touch gesture handlers (mouse drag on laptop/desktop + touch swipe on phones)
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    dragStartX.current = e.clientX;
+    dragStartY.current = e.clientY;
+    isDragging.current = true;
+    isHorizontalGesture.current = false;
   };
 
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (touchStartX.current === null || touchStartY.current === null) return;
-    const dx = e.touches[0].clientX - touchStartX.current;
-    const dy = e.touches[0].clientY - touchStartY.current;
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!isDragging.current || dragStartX.current === null || dragStartY.current === null) return;
+    const dx = e.clientX - dragStartX.current;
+    const dy = e.clientY - dragStartY.current;
 
-    if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.2) {
-      isHorizontalSwipe.current = true;
+    if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.1) {
+      isHorizontalGesture.current = true;
     }
   };
 
-  const onTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (!isDragging.current || dragStartX.current === null) {
+      isDragging.current = false;
+      return;
+    }
 
-    if (isHorizontalSwipe.current || Math.abs(dx) > 40) {
-      if (dx < -35) {
+    const dx = e.clientX - dragStartX.current;
+
+    if (isHorizontalGesture.current || Math.abs(dx) > 30) {
+      if (dx < -30) {
         handleNext();
-      } else if (dx > 35) {
+      } else if (dx > 30) {
         handlePrev();
       }
     }
 
-    touchStartX.current = null;
-    touchStartY.current = null;
-    isHorizontalSwipe.current = false;
+    dragStartX.current = null;
+    dragStartY.current = null;
+    isDragging.current = false;
+    isHorizontalGesture.current = false;
+  };
+
+  const onPointerCancel = () => {
+    dragStartX.current = null;
+    dragStartY.current = null;
+    isDragging.current = false;
+    isHorizontalGesture.current = false;
   };
 
   if (!activeData || total === 0) return null;
@@ -156,17 +169,17 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
           role="dialog"
           aria-modal="true"
           aria-label={`${activeData.title} photo archive`}
-          className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-black/85 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-black/90 backdrop-blur-sm"
           onClick={onClose}
         >
-          {/* Scrollable centering container */}
-          <div className="flex min-h-full items-center justify-center p-3 sm:p-6 py-6 sm:py-10">
+          {/* Scrollable container: items-start on mobile prevents flex center cutoff; md:items-center on desktop */}
+          <div className="flex min-h-full items-start md:items-center justify-center p-3 sm:p-6 py-6 md:py-10">
             {/* Main Modal Card */}
             <motion.div
-              className="relative z-10 w-full max-w-4xl rounded-xl border border-[var(--matrix)]/40 bg-[#050705]/98 p-4 sm:p-6 md:p-8 shadow-[0_0_50px_rgba(0,255,65,0.2)]"
-              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              className="relative z-10 w-full max-w-4xl rounded-xl border border-[var(--matrix)]/40 bg-[#050705] p-4 sm:p-6 md:p-8 shadow-[0_0_50px_rgba(0,255,65,0.2)]"
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
               transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -222,10 +235,12 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
                 {/* Right Column (Desktop) / Top Section (Mobile): Interactive Photo Album */}
                 <div className="order-1 md:order-2 flex flex-col items-center justify-center w-full">
                   <div
-                    className="relative aspect-[3/4] w-full max-w-[300px] sm:max-w-[320px] overflow-hidden rounded-lg select-none"
-                    onTouchStart={onTouchStart}
-                    onTouchMove={onTouchMove}
-                    onTouchEnd={onTouchEnd}
+                    className="relative aspect-[3/4] w-full max-w-[300px] sm:max-w-[320px] overflow-hidden rounded-lg select-none cursor-grab active:cursor-grabbing"
+                    style={{ touchAction: 'pan-y' }}
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    onPointerCancel={onPointerCancel}
                   >
                     {/* Background Depth Preview Underneath */}
                     <div
@@ -310,7 +325,7 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
                         {String(currentIndex + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
                       </span>
                       <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/80">
-                        SWIPE OR TAP &rarr;
+                        DRAG OR TAP &rarr;
                       </span>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         {images.map((_, dotIdx) => (
