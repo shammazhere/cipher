@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowLeft, ArrowRight } from 'lucide-react';
 
@@ -87,11 +88,23 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
     paginate(-1);
   }, [total, paginate]);
 
-  // Keyboard navigation & lock body scroll
+  // Keyboard navigation & robust mobile/desktop body scroll lock with scroll restoration
   useEffect(() => {
     if (!activeData) return;
-    const prevOverflow = document.body.style.overflow;
+
+    const scrollY = window.scrollY;
+    const originalStyle = {
+      overflow: document.body.style.overflow,
+      position: document.body.style.position,
+      top: document.body.style.top,
+      width: document.body.style.width,
+    };
+
+    // Lock body without jumping or causing page scroll leakage on mobile touch
     document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -101,7 +114,11 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
 
     window.addEventListener('keydown', onKeyDown);
     return () => {
-      document.body.style.overflow = prevOverflow;
+      document.body.style.overflow = originalStyle.overflow;
+      document.body.style.position = originalStyle.position;
+      document.body.style.top = originalStyle.top;
+      document.body.style.width = originalStyle.width;
+      window.scrollTo(0, scrollY);
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [activeData, onClose, handleNext, handlePrev]);
@@ -158,28 +175,33 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
     isHorizontalGesture.current = false;
   };
 
-  if (!activeData || total === 0) return null;
+  if (!activeData || total === 0 || typeof document === 'undefined') return null;
 
   const nextImageIdx = (currentIndex + 1) % total;
 
-  return (
+  const modalNode = (
     <AnimatePresence>
       {activeData && total > 0 && (
         <div
           role="dialog"
           aria-modal="true"
           aria-label={`${activeData.title} photo archive`}
-          className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-black/90"
+          data-lenis-prevent
+          className="fixed inset-0 z-[100] h-[100dvh] w-screen overflow-y-auto overscroll-contain bg-black/90 backdrop-blur-sm"
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-y',
+          }}
           onClick={onClose}
         >
-          {/* Scrollable container: items-start on mobile prevents flex center cutoff; md:items-center on desktop */}
-          <div className="flex min-h-full items-start md:items-center justify-center p-3 sm:p-6 py-6 md:py-10">
+          {/* Scrollable container with safe-area spacing: items-start allows tall modals to scroll smoothly from top to bottom */}
+          <div className="flex min-h-full items-start md:items-center justify-center p-3 sm:p-6 pt-12 pb-24 md:py-10">
             {/* Main Modal Card */}
             <motion.div
-              className="relative z-10 w-full max-w-4xl rounded-xl border border-[var(--matrix)]/40 bg-[#050705] p-4 sm:p-6 md:p-8 shadow-[0_0_50px_rgba(0,255,65,0.2)]"
-              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              className="relative z-10 w-full max-w-4xl rounded-xl border border-[var(--matrix)]/50 bg-[#050705] p-4 sm:p-6 md:p-8 shadow-[0_0_50px_rgba(0,255,65,0.25)]"
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              exit={{ opacity: 0, y: 16, scale: 0.98 }}
               transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -189,17 +211,17 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
                 onClick={onClose}
                 aria-label="Close"
                 data-cursor="lens"
-                className="absolute right-3 top-3 sm:right-5 sm:top-5 z-30 flex h-9 w-9 items-center justify-center rounded border border-[var(--border)] bg-[#050705]/90 text-muted-foreground transition-colors hover:border-[var(--matrix)] hover:text-[var(--matrix)] active:scale-95 shadow-md"
+                className="absolute right-3 top-3 sm:right-5 sm:top-5 z-30 flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--border)] bg-[#050705]/95 text-foreground transition-colors hover:border-[var(--matrix)] hover:text-[var(--matrix)] active:scale-95 shadow-lg"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
 
               {/* Mobile Header (rendered at top for mobile screens) */}
-              <div className="mb-4 pr-10 md:hidden">
+              <div className="mb-4 pr-12 md:hidden">
                 <span className="font-mono text-xs uppercase tracking-widest text-[var(--matrix)]">
                   CIPHER // ACTIVITIES
                 </span>
-                <h3 className="mt-1 font-display text-xl sm:text-2xl text-foreground">
+                <h3 className="mt-1 font-display text-xl sm:text-2xl font-semibold text-foreground">
                   {activeData.title}
                 </h3>
                 <span className="mt-0.5 block font-mono text-xs uppercase tracking-widest text-muted-foreground">
@@ -210,13 +232,13 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
               {/* Responsive 2-Column Desktop / Mobile Photo-First Grid */}
               <div className="flex flex-col md:grid md:grid-cols-2 md:gap-8 items-start">
                 {/* Desktop Left Column / Mobile Bottom: Narrative Text */}
-                <div className="order-2 md:order-1 flex flex-col mt-6 md:mt-0">
+                <div className="order-2 md:order-1 flex flex-col mt-6 md:mt-0 w-full">
                   {/* Desktop-only Header */}
                   <div className="hidden md:block">
                     <span className="font-mono text-xs uppercase tracking-widest text-[var(--matrix)]">
                       CIPHER // ACTIVITIES
                     </span>
-                    <h3 className="mt-2 font-display text-2xl text-foreground md:text-3xl">
+                    <h3 className="mt-2 font-display text-2xl text-foreground md:text-3xl font-semibold">
                       {activeData.title}
                     </h3>
                     <span className="mt-1 block font-mono text-xs uppercase tracking-widest text-muted-foreground">
@@ -230,12 +252,27 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
                       <p key={i}>{p}</p>
                     ))}
                   </div>
+
+                  {/* Mobile-only Bottom Close Action */}
+                  <div className="mt-8 pt-4 border-t border-[var(--border)]/60 flex items-center justify-between md:hidden">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                      END OF ARCHIVE
+                    </span>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="inline-flex items-center gap-1.5 rounded border border-[var(--matrix)]/60 bg-[var(--matrix)]/10 px-3.5 py-1.5 font-mono text-xs text-[var(--matrix)] font-bold active:scale-95 transition-all"
+                    >
+                      <X size={13} />
+                      <span>CLOSE ARCHIVE</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Right Column (Desktop) / Top Section (Mobile): Interactive Photo Album */}
                 <div className="order-1 md:order-2 flex flex-col items-center justify-center w-full">
                   <div
-                    className="relative aspect-[3/4] w-full max-w-[300px] sm:max-w-[320px] overflow-hidden rounded-lg select-none cursor-grab active:cursor-grabbing"
+                    className="relative aspect-[3/4] w-full max-w-[270px] sm:max-w-[300px] md:max-w-[320px] overflow-hidden rounded-lg select-none cursor-grab active:cursor-grabbing shadow-[0_0_20px_rgba(0,0,0,0.8)]"
                     style={{ touchAction: 'pan-y' }}
                     onPointerDown={onPointerDown}
                     onPointerMove={onPointerMove}
@@ -253,7 +290,10 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
                       <img
                         src={images[nextImageIdx]}
                         alt=""
+                        width={320}
+                        height={427}
                         decoding="async"
+                        loading="lazy"
                         className="h-full w-full object-cover opacity-50"
                       />
                       <div className="absolute inset-0 bg-black/40" />
@@ -288,8 +328,11 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
                         <img
                           src={images[currentIndex]}
                           alt={activeData.title}
+                          width={320}
+                          height={427}
                           decoding="async"
                           loading="eager"
+                          fetchPriority="high"
                           className="h-full w-full object-cover pointer-events-none"
                           draggable={false}
                         />
@@ -307,7 +350,7 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
                   </div>
 
                   {/* Navigation Controls & Indicators */}
-                  <div className="mt-4 flex w-full max-w-[300px] sm:max-w-[320px] items-center justify-between">
+                  <div className="mt-4 flex w-full max-w-[270px] sm:max-w-[300px] md:max-w-[320px] items-center justify-between">
                     {/* Left Button */}
                     <button
                       type="button"
@@ -366,6 +409,9 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
       )}
     </AnimatePresence>
   );
+
+  return createPortal(modalNode, document.body);
 };
+
 
 

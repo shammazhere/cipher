@@ -29,15 +29,16 @@ export function useSmoothScroll({ disabled = false, isModalOpen = false }: UseSm
     let lenis: Lenis | null = null;
     let rafId: number = 0;
 
-    // Only initialize Lenis on desktop/fine-pointer devices to allow 120Hz/60Hz native GPU touch scrolling on phones
+    // Only initialize Lenis on desktop/fine-pointer devices with silky frictionless momentum
     if (!isTouch) {
       lenis = new Lenis({
-        duration: 1.1,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        duration: 1.15,
+        easing: (t) => 1 - Math.pow(1 - t, 3.5),
         orientation: 'vertical',
         gestureOrientation: 'vertical',
         smoothWheel: true,
-        wheelMultiplier: 1.0,
+        wheelMultiplier: 1.25,
+        touchMultiplier: 1.8,
         syncTouch: false,
         infinite: false,
       });

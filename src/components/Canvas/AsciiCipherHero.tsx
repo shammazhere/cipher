@@ -16,6 +16,7 @@ interface AsciiCipherHeroProps {
 }
 
 const ASCII_RAMP = '.:-+*=#%@CIPHER';
+const DENSE_RAMP = '#%@$8WMBKCIPHER';
 
 interface AsciiParticle {
   col: number;
@@ -43,7 +44,6 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     let isMobile = false;
@@ -62,10 +62,13 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
     let isVisible = true;
 
     const render = () => {
-      ctx.font = `${charSize + 2}px monospace`;
+      ctx.font = `bold ${charSize + (isMobile ? 3 : 2)}px 'JetBrains Mono', monospace`;
       ctx.textBaseline = 'top';
       ctx.textAlign = 'center';
       ctx.clearRect(0, 0, width, heightPx);
+
+      ctx.shadowColor = 'rgba(0, 255, 65, 0.45)';
+      ctx.shadowBlur = isMobile ? 3 : 1;
 
       const len = litIndices.length;
       for (let j = 0; j < len; j++) {
@@ -88,10 +91,10 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
       heightPx = rect.height || (window.innerHeight * 0.4);
 
       isMobile = width < 768 || window.matchMedia('(pointer: coarse)').matches;
-      const dpr = isMobile ? 1.0 : Math.min(window.devicePixelRatio || 1, 1.5);
+      const dpr = isMobile ? Math.min(window.devicePixelRatio || 1, 2.0) : Math.min(window.devicePixelRatio || 1, 1.5);
 
-      charSize = isMobile ? 8 : 9;
-      cellStep = charSize + (isMobile ? 1 : 2);
+      charSize = isMobile ? 8.5 : 9;
+      cellStep = isMobile ? 9 : 11;
 
       cols = Math.floor(width / cellStep);
       rows = Math.floor(heightPx / cellStep);
@@ -102,9 +105,11 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
       canvas.style.height = `${heightPx}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // Rasterize CIPHER text on temporary offscreen canvas
-      const textWidth = Math.min(0.84 * width, 1100);
-      const textHeight = 0.24 * textWidth;
+      // Rasterize CIPHER text: on phones, utilize up to 96% width and slightly higher aspect ratio so it fills the screen boldly
+      const textWidth = isMobile
+        ? Math.min(0.96 * width, 460)
+        : Math.min(0.86 * width, 1100);
+      const textHeight = isMobile ? 0.28 * textWidth : 0.24 * textWidth;
       const startCol = Math.floor((width - textWidth) / 2 / cellStep);
       const startRow = Math.floor((heightPx - textHeight) / 2 / cellStep);
       const sampleCols = Math.max(1, Math.ceil(textWidth / cellStep));
@@ -123,16 +128,22 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
         offCtx.textBaseline = 'middle';
 
         const word = 'CIPHER';
-        let fontSize = 0.92 * offscreen.height;
+        let fontSize = 0.94 * offscreen.height;
         const fontStr = (size: number) =>
-          `bold ${size}px 'Arial Black','Helvetica Neue',Arial,sans-serif`;
+          `900 ${size}px 'Arial Black', Impact, 'Helvetica Neue', Arial, sans-serif`;
 
         offCtx.font = fontStr(fontSize);
-        while (offCtx.measureText(word).width > 0.96 * offscreen.width && fontSize > 4) {
+        while (offCtx.measureText(word).width > 0.98 * offscreen.width && fontSize > 4) {
           fontSize -= 2;
           offCtx.font = fontStr(fontSize);
         }
 
+        // Draw thick outline stroke + fill to dilate and thicken the letters on canvas
+        offCtx.lineWidth = isMobile ? Math.max(3.5, cellStep * 0.4) : Math.max(2, cellStep * 0.2);
+        offCtx.strokeStyle = '#fff';
+        offCtx.lineJoin = 'miter';
+        offCtx.miterLimit = 2;
+        offCtx.strokeText(word, offscreen.width / 2, offscreen.height / 2 + 0.02 * fontSize);
         offCtx.fillText(word, offscreen.width / 2, offscreen.height / 2 + 0.02 * fontSize);
 
         const scaled = document.createElement('canvas');
@@ -148,6 +159,9 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
           particles = [];
           litIndices = [];
 
+          const activeRamp = isMobile ? DENSE_RAMP : ASCII_RAMP;
+          const litThreshold = isMobile ? 0.28 : 0.44;
+
           let pIndex = 0;
           for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
@@ -162,9 +176,9 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
               ) {
                 const idx = ((r - startRow) * sampleCols + (c - startCol)) * 4;
                 const brightness = (0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2]) / 255;
-                isLit = brightness > 0.5;
+                isLit = brightness > litThreshold;
                 char = isLit
-                  ? ASCII_RAMP[Math.min(ASCII_RAMP.length - 1, Math.floor(brightness * ASCII_RAMP.length))]
+                  ? activeRamp[Math.min(activeRamp.length - 1, Math.floor(brightness * activeRamp.length))]
                   : ' ';
               }
 
@@ -258,13 +272,14 @@ export const AsciiCipherHero: React.FC<AsciiCipherHeroProps> = ({
       if (!scrambleInterval) {
         scrambleInterval = setInterval(() => {
           const len = litIndices.length;
+          const activeRamp = isMobile ? DENSE_RAMP : ASCII_RAMP;
           for (let j = 0; j < len; j++) {
-            particles[litIndices[j]].char = ASCII_RAMP[Math.floor(Math.random() * ASCII_RAMP.length)];
+            particles[litIndices[j]].char = activeRamp[Math.floor(Math.random() * activeRamp.length)];
           }
           if (!isLoopRunning) {
             render();
           }
-        }, isMobile ? 180 : 90);
+        }, isMobile ? 160 : 90);
       }
       requestLoop();
     };

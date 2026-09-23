@@ -154,6 +154,8 @@ export const LeadershipSection: React.FC<{ onNavigate?: (page: string) => void }
                   <img
                     src={leader.photo}
                     alt={`${leader.name}, ${leader.role}`}
+                    width={280}
+                    height={373}
                     loading="lazy"
                     decoding="async"
                     className="h-full w-full object-cover grayscale transition-all duration-500 hover:grayscale-0"

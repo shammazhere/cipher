@@ -23,8 +23,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenJoin }) => {
   return (
     <section id="top" className="relative flex min-h-screen flex-col items-center overflow-hidden">
       {/* Interactive ASCII CIPHER Banner */}
-      <div className="relative w-full pt-24 sm:pt-28">
-        <AsciiCipherHero height="40vh" />
+      <div className="relative w-full pt-20 sm:pt-28">
+        <AsciiCipherHero height="38vh" className="min-h-[220px] sm:min-h-[280px]" />
       </div>
 
       {/* Hero Headline & Action Links */}

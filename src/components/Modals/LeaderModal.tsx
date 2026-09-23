@@ -63,6 +63,11 @@ export const LeaderModal: React.FC<LeaderModalProps> = ({ leader, onClose }) => 
               <img
                 src={leader.photo || leader.image || ''}
                 alt={`${leader.name}, ${leader.role}`}
+                width={320}
+                height={427}
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
                 className="h-full w-full object-cover"
                 draggable={false}
               />

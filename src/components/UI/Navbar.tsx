@@ -74,6 +74,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage = 'home', onNavigate
           <img
             src="/images/cipher-logo.webp"
             alt="CIPHER"
+            width={80}
+            height={80}
+            fetchPriority="high"
+            decoding="async"
             onError={handleImageError}
             className="h-16 w-auto md:h-20"
           />

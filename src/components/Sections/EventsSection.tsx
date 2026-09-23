@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useRef, useCallback } from 'react';
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Calendar, ArrowUpRight } from 'lucide-react';
 import { EventGalleryModal, GalleryModalData } from '../Modals/EventGalleryModal';
 import { SectionHeader } from '../UI/SectionHeader';
@@ -70,38 +70,48 @@ const EventFlipCard: React.FC<{
   event: GalleryModalData;
   onOpenGallery: (event: GalleryModalData) => void;
 }> = ({ event, onOpenGallery }) => {
-  const [isFlipped, setIsFlipped] = useState(false);
-  const flipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+  const rotateY = useMotionValue(0);
+  const isFlippingRef = useRef(false);
+  const pointerDownPos = useRef<{ x: number; y: number; t: number } | null>(null);
 
-  const handleCardClick = () => {
-    if (isFlipped) return;
-    setIsFlipped(true);
+  // Derived values for front/back face visibility
+  const frontOpacity = useTransform(rotateY, [0, 89, 90, 180], [1, 1, 0, 0]);
+  const backOpacity = useTransform(rotateY, [0, 89, 90, 180], [0, 0, 1, 1]);
 
-    if (flipTimerRef.current) clearTimeout(flipTimerRef.current);
+  const triggerFlip = useCallback(() => {
+    if (isFlippingRef.current) return;
+    isFlippingRef.current = true;
 
-    flipTimerRef.current = setTimeout(() => {
-      onOpenGallery(event);
-      setTimeout(() => {
-        setIsFlipped(false);
-      }, 150);
-    }, 200);
-  };
+    // Animate to 180° with a snappy spring-like ease
+    animate(rotateY, 180, {
+      duration: 0.38,
+      ease: [0.2, 0.9, 0.3, 1],
+      onComplete: () => {
+        onOpenGallery(event);
+        // After gallery opens, reset flip without animation (instant reset)
+        setTimeout(() => {
+          animate(rotateY, 0, { duration: 0.001 });
+          isFlippingRef.current = false;
+        }, 120);
+      },
+    });
+  }, [rotateY, event, onOpenGallery]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    pointerDownPos.current = { x: e.clientX, y: e.clientY };
+    pointerDownPos.current = { x: e.clientX, y: e.clientY, t: Date.now() };
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (!pointerDownPos.current) return;
     const dx = Math.abs(e.clientX - pointerDownPos.current.x);
     const dy = Math.abs(e.clientY - pointerDownPos.current.y);
+    const dt = Date.now() - pointerDownPos.current.t;
     pointerDownPos.current = null;
 
-    // If movement was more than 10px, the user was scrolling/swiping — don't trigger flip
-    if (dx > 10 || dy > 10) return;
+    // Generous threshold: if movement was more than 15px AND took >100ms, user was scrolling
+    if ((dx > 15 || dy > 15) && dt > 100) return;
 
-    handleCardClick();
+    triggerFlip();
   };
 
   return (
@@ -115,18 +125,23 @@ const EventFlipCard: React.FC<{
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          handleCardClick();
+          triggerFlip();
         }
       }}
     >
-      <div
+      <motion.div
         className="flip-card-inner h-full w-full rounded-xl"
         style={{
-          transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+          rotateY,
+          transformStyle: 'preserve-3d',
+          willChange: 'transform',
         }}
       >
         {/* FRONT FACE */}
-        <article className="flip-card-face flip-card-front flex h-full flex-col justify-between rounded-xl border border-[var(--border)] bg-[var(--card)]/90 p-6 text-left transition-all duration-300 hover:border-[var(--matrix)] hover:box-glow hover:scale-[1.01]">
+        <motion.article
+          className="flip-card-face flip-card-front flex h-full flex-col justify-between rounded-xl border border-[var(--border)] bg-[var(--card)]/90 p-6 text-left transition-colors duration-300 hover:border-[var(--matrix)] hover:box-glow"
+          style={{ opacity: frontOpacity }}
+        >
           <div>
             {/* Card Top Strip */}
             <div className="mb-4 flex items-center justify-between">
@@ -159,10 +174,13 @@ const EventFlipCard: React.FC<{
               <ArrowUpRight size={14} />
             </span>
           </div>
-        </article>
+        </motion.article>
 
         {/* BACK FACE (Cyber Hologram Back during 3D Flip) */}
-        <div className="flip-card-face flip-card-back flex h-full flex-col items-center justify-center rounded-xl border border-[var(--matrix)] bg-[#050705] p-6 text-center shadow-[0_0_30px_rgba(0,255,65,0.2)]">
+        <motion.div
+          className="flip-card-face flip-card-back flex h-full flex-col items-center justify-center rounded-xl border border-[var(--matrix)] bg-[#050705] p-6 text-center shadow-[0_0_30px_rgba(0,255,65,0.2)]"
+          style={{ opacity: backOpacity }}
+        >
           <div className="relative flex flex-col items-center justify-center gap-3">
             <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[var(--matrix)]/60 bg-[var(--matrix)]/10 text-[var(--matrix)] shadow-[0_0_20px_rgba(0,255,65,0.35)] animate-pulse">
               <span className="font-mono text-lg font-bold">CPH</span>
@@ -171,8 +189,8 @@ const EventFlipCard: React.FC<{
               LAUNCHING VAULT...
             </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 };
