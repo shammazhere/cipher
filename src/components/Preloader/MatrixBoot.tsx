@@ -230,14 +230,16 @@ interface CipherDecryptProps {
 const CipherDecrypt: React.FC<CipherDecryptProps> = ({ onResolved }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const letterRefs = useRef<(HTMLSpanElement | null)[]>([]);
-  const [letters, setLetters] = useState<string[]>(() => TARGET_WORD.split(''));
+  const [letters, setLetters] = useState<string[]>(() =>
+    TARGET_WORD.split('').map(() => SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)])
+  );
   const solvedRef = useRef<boolean[]>(TARGET_WORD.split('').map(() => false));
   const pointerPos = useRef({ x: -9999, y: -9999, active: false });
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setLetters(TARGET_WORD.split(''));
-      const t = setTimeout(onResolved, 700);
+      const t = setTimeout(onResolved, 600);
       return () => clearTimeout(t);
     }
 
@@ -270,7 +272,7 @@ const CipherDecrypt: React.FC<CipherDecryptProps> = ({ onResolved }) => {
 
     const tick = (now: number) => {
       const elapsed = now - startTime;
-      const lettersToSolve = Math.floor(elapsed / 420);
+      const lettersToSolve = Math.floor(elapsed / 220);
 
       for (let i = 0; i < TARGET_WORD.length; i++) {
         if (i < lettersToSolve) {
@@ -282,18 +284,18 @@ const CipherDecrypt: React.FC<CipherDecryptProps> = ({ onResolved }) => {
       let curY = pointerPos.current.y;
 
       if (!pointerPos.current.active && cachedContainerRect) {
-        const swing = (Math.sin(elapsed / 700) + 1) / 2;
+        const swing = (Math.sin(elapsed / 500) + 1) / 2;
         curX = cachedContainerRect.left + swing * cachedContainerRect.width;
         curY = cachedContainerRect.top + cachedContainerRect.height / 2;
       }
 
-      if (now - lastScramble > 65) {
+      if (now - lastScramble > 45) {
         lastScramble = now;
         setLetters(
           TARGET_WORD.split('').map((char, idx) => {
             if (solvedRef.current[idx]) return char;
             const center = cachedLetterCenters[idx];
-            if (center && Math.hypot(center.x - curX, center.y - curY) < 90) {
+            if (center && Math.hypot(center.x - curX, center.y - curY) < 80) {
               return char;
             }
             return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
@@ -305,7 +307,7 @@ const CipherDecrypt: React.FC<CipherDecryptProps> = ({ onResolved }) => {
         setLetters(TARGET_WORD.split(''));
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('resize', updateCachedPositions);
-        setTimeout(onResolved, 500);
+        setTimeout(onResolved, 450);
         return;
       }
 
@@ -321,18 +323,17 @@ const CipherDecrypt: React.FC<CipherDecryptProps> = ({ onResolved }) => {
     };
   }, [onResolved]);
 
-
   return (
     <motion.div
-      className="relative flex w-full flex-col items-center justify-center"
-      initial={{ scale: 1, opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ scale: 0.4, opacity: 0, y: -140 }}
-      transition={{ duration: 0.5 }}
+      className="relative flex w-full flex-col items-center justify-center select-none text-center"
+      initial={{ scale: 0.92, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0.8, opacity: 0, y: -60 }}
+      transition={{ duration: 0.45, ease: 'easeInOut' }}
     >
       <div
         ref={containerRef}
-        className="font-matrix flex select-none text-[clamp(3.5rem,20vw,16rem)] leading-none tracking-tight text-[var(--matrix)] text-glow-strong"
+        className="font-matrix flex select-none text-[clamp(3.5rem,18vw,14rem)] leading-none tracking-tight text-[var(--matrix)] text-glow-strong justify-center"
       >
         {letters.map((char, idx) => (
           <span
@@ -340,13 +341,21 @@ const CipherDecrypt: React.FC<CipherDecryptProps> = ({ onResolved }) => {
             ref={(el) => {
               letterRefs.current[idx] = el;
             }}
-            className="inline-block w-[0.72em] text-center"
+            className="inline-block w-[0.72em] text-center transition-transform duration-75"
             aria-hidden="true"
           >
             {char}
           </span>
         ))}
       </div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.4 }}
+        className="mt-5 font-mono text-xs uppercase tracking-[0.3em] text-[#6fae78] sm:text-sm text-glow"
+      >
+        [ DECRYPTING SECURITY PROTOCOL ]
+      </motion.div>
     </motion.div>
   );
 };

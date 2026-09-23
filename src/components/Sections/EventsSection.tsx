@@ -72,6 +72,7 @@ const EventFlipCard: React.FC<{
 }> = ({ event, onOpenGallery }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const flipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
 
   const handleCardClick = () => {
     if (isFlipped) return;
@@ -87,11 +88,27 @@ const EventFlipCard: React.FC<{
     }, 200);
   };
 
+  const handlePointerDown = (e: React.PointerEvent) => {
+    pointerDownPos.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!pointerDownPos.current) return;
+    const dx = Math.abs(e.clientX - pointerDownPos.current.x);
+    const dy = Math.abs(e.clientY - pointerDownPos.current.y);
+    pointerDownPos.current = null;
+
+    // If movement was more than 10px, the user was scrolling/swiping — don't trigger flip
+    if (dx > 10 || dy > 10) return;
+
+    handleCardClick();
+  };
 
   return (
     <div
-      className="flip-card-container h-full min-h-[360px] sm:min-h-[380px] w-full cursor-pointer"
-      onClick={handleCardClick}
+      className="flip-card-container h-full min-h-[360px] sm:min-h-[380px] w-full cursor-pointer select-none"
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
       role="button"
       tabIndex={0}
       data-cursor="lens"
@@ -175,6 +192,8 @@ const formatEventToGalleryData = (event: EventItem): GalleryModalData => ({
 
 export const EventsSection: React.FC = () => {
   const [activeModalData, setActiveModalData] = useState<GalleryModalData | null>(null);
+  const [activeEventIndex, setActiveEventIndex] = useState<number>(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { archive, events } = useData();
   const activities = (archive && archive.length > 0) ? archive : defaultArchive;
 
@@ -182,28 +201,90 @@ export const EventsSection: React.FC = () => {
     ? events.map(formatEventToGalleryData)
     : FEATURED_EVENTS;
 
+  // Track active slide on mobile scroll
+  const handleScroll = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const cardWidth = el.scrollWidth / displayEvents.length;
+    const newIdx = Math.round(el.scrollLeft / cardWidth);
+    setActiveEventIndex(Math.max(0, Math.min(newIdx, displayEvents.length - 1)));
+  };
+
+  const scrollToEvent = (index: number) => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const cardWidth = el.scrollWidth / displayEvents.length;
+    el.scrollTo({
+      left: index * cardWidth,
+      behavior: 'smooth',
+    });
+    setActiveEventIndex(index);
+  };
+
   return (
     <section id="events" className="relative border-t border-[var(--border)] py-24">
       <div className="mx-auto max-w-6xl px-5">
         {/* Header */}
         <SectionHeader label="activities" title="Events & Workshops" />
 
-        {/* Flagship Event & Workshop Cards */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {displayEvents.map((event, idx) => (
-            <motion.div
-              key={`${event.slug || event.title}-${idx}`}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: idx * 0.1 }}
-            >
-              <EventFlipCard
-                event={event}
-                onOpenGallery={(ev) => setActiveModalData(ev)}
-              />
-            </motion.div>
-          ))}
+        {/* Flagship Event & Workshop Cards with Mobile Horizontal Scroll & Desktop Grid */}
+        <div className="relative mt-12">
+          {/* Mobile Edge Gradient Fades */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-[#050705] to-transparent md:hidden"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-[#050705] to-transparent md:hidden"
+          />
+
+          {/* Responsive Scrollable Container */}
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="flex overflow-x-auto snap-x snap-mandatory gap-5 pb-4 md:pb-0 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible no-scrollbar -mx-5 px-5 md:mx-0 md:px-0"
+          >
+            {displayEvents.map((event, idx) => (
+              <motion.div
+                key={`${event.slug || event.title}-${idx}`}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: idx * 0.1 }}
+                className="w-[86vw] max-w-[380px] shrink-0 snap-center md:w-full md:max-w-none"
+              >
+                <EventFlipCard
+                  event={event}
+                  onOpenGallery={(ev) => setActiveModalData(ev)}
+                />
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Mobile Pagination Dots & Swipe Indicator */}
+          {displayEvents.length > 1 && (
+            <div className="mt-4 flex flex-col items-center justify-center gap-2 md:hidden">
+              <div className="flex items-center gap-2">
+                {displayEvents.map((_, dotIdx) => (
+                  <button
+                    key={dotIdx}
+                    type="button"
+                    onClick={() => scrollToEvent(dotIdx)}
+                    aria-label={`Go to event ${dotIdx + 1}`}
+                    className={`h-1.5 rounded-full transition-all duration-300 p-0 ${
+                      dotIdx === activeEventIndex
+                        ? 'w-6 bg-[var(--matrix)] shadow-[0_0_8px_var(--matrix)]'
+                        : 'w-2 bg-[var(--border)]'
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                Swipe horizontally to browse events ({activeEventIndex + 1}/{displayEvents.length})
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Activities Archive */}

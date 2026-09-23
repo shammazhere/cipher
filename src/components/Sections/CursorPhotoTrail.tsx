@@ -158,6 +158,16 @@ export const CursorPhotoTrail: React.FC<CursorPhotoTrailProps> = ({
     return () => observer.disconnect();
   }, [updateCachedRect]);
 
+  // Preload all trail images into browser cache for 0ms decoding latency on first touch
+  useEffect(() => {
+    if (!images.length) return;
+    images.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+      img.decoding = 'async';
+    });
+  }, [images]);
+
   // Mouse & Touch trail physics
   useEffect(() => {
     const el = containerRef.current;
@@ -191,7 +201,7 @@ export const CursorPhotoTrail: React.FC<CursorPhotoTrailProps> = ({
       const prev = isTracking.current ? prevMouse.current : null;
       isTracking.current = true;
 
-      let speed = 0;
+      let speed = 0.5;
       if (prev) {
         const dt = Math.max(now - prev.t, 1);
         speed = Math.hypot(m.x - prev.x, m.y - prev.y) / dt;
@@ -203,9 +213,7 @@ export const CursorPhotoTrail: React.FC<CursorPhotoTrailProps> = ({
         reactiveLabelRef.current.style.setProperty('--cpt-boost', boost.toFixed(3));
       }
 
-      if (speed < 0.05) return;
-
-      const spawnCooldown = isTouchDevice ? 320 : (240 - 180 * boost);
+      const spawnCooldown = isTouchDevice ? 120 : (200 - 150 * boost);
       if (now - lastSpawnTime.current < spawnCooldown) return;
       lastSpawnTime.current = now;
 
@@ -226,7 +234,8 @@ export const CursorPhotoTrail: React.FC<CursorPhotoTrailProps> = ({
 
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 0) {
-        handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+        const t = e.touches[0];
+        handlePointerMove(t.clientX, t.clientY);
       }
     };
 
@@ -242,7 +251,7 @@ export const CursorPhotoTrail: React.FC<CursorPhotoTrailProps> = ({
           t.clientY >= rect.top &&
           t.clientY <= rect.bottom
         ) {
-          spawnPhoto(t.clientX, t.clientY, 0.7);
+          spawnPhoto(t.clientX, t.clientY, 0.85);
           lastSpawnTime.current = performance.now();
         }
       }
@@ -284,8 +293,11 @@ export const CursorPhotoTrail: React.FC<CursorPhotoTrailProps> = ({
       ref={containerRef}
       className={`cpt-zone cursor-pointer select-none ${className}`}
       style={{ touchAction: 'pan-y' }}
+      onPointerDown={(e) => {
+        spawnPhoto(e.clientX, e.clientY, 0.85);
+      }}
       onClick={(e) => {
-        spawnPhoto(e.clientX, e.clientY, 0.8);
+        spawnPhoto(e.clientX, e.clientY, 0.85);
       }}
     >
       {/* Spawning trailing photo cards */}

@@ -152,7 +152,8 @@ html.lenis, html.lenis body {
    ============================================================================= */
 
 .cpt-zone {
-  pointer-events: none;
+  pointer-events: auto;
+  touch-action: pan-y;
   isolation: isolate;
   background: transparent;
   position: absolute;
