@@ -1,6 +1,10 @@
 # CIPHER — Student Association of Computer Science & Engineering
 > Official Web Portal & Student Association Platform | St Joseph Engineering College (SJEC), Mangaluru
 
+### Live Deployments
+- **Main Portal**: [http://cipher-psi-three.vercel.app/](http://cipher-psi-three.vercel.app/)
+- **Admin Portal**: [https://cipher-admin-blue.vercel.app/](https://cipher-admin-blue.vercel.app/)
+
 Built for the **Build Blazer Hackathon (Phase 2 - Implementation Round)** for the **CIPHER (CSE Association)** track.
 
 ---
