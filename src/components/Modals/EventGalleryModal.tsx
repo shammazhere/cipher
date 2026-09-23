@@ -21,9 +21,9 @@ interface EventGalleryModalProps {
 
 const slideVariants = {
   enter: (direction: number) => ({
-    x: direction >= 0 ? 120 : -120,
-    opacity: 0,
-    scale: 0.97,
+    x: direction === 0 ? 0 : direction > 0 ? 80 : -80,
+    opacity: direction === 0 ? 1 : 0,
+    scale: direction === 0 ? 1 : 0.96,
   }),
   center: {
     zIndex: 1,
@@ -33,9 +33,9 @@ const slideVariants = {
   },
   exit: (direction: number) => ({
     zIndex: 0,
-    x: direction >= 0 ? -120 : 120,
+    x: direction > 0 ? -80 : 80,
     opacity: 0,
-    scale: 0.97,
+    scale: 0.96,
   }),
 };
 
@@ -124,7 +124,7 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
     const dx = e.clientX - dragStartX.current;
     const dy = e.clientY - dragStartY.current;
 
-    if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.1) {
+    if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.3) {
       isHorizontalGesture.current = true;
     }
   };
@@ -137,7 +137,7 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
 
     const dx = e.clientX - dragStartX.current;
 
-    if (isHorizontalGesture.current || Math.abs(dx) > 30) {
+    if (isHorizontalGesture.current || Math.abs(dx) > 35) {
       if (dx < -30) {
         handleNext();
       } else if (dx > 30) {
@@ -169,7 +169,7 @@ export const EventGalleryModal: React.FC<EventGalleryModalProps> = ({ data, even
           role="dialog"
           aria-modal="true"
           aria-label={`${activeData.title} photo archive`}
-          className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-black/90 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-black/90"
           onClick={onClose}
         >
           {/* Scrollable container: items-start on mobile prevents flex center cutoff; md:items-center on desktop */}
