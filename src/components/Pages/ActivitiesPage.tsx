@@ -74,6 +74,8 @@ export const ActivitiesPage: React.FC<{ onNavigate: (page: string) => void }> = 
               const category = getActivityCategory(activity.title);
               const hasLink = Boolean(activity.href && activity.href.trim().length > 0);
 
+              const linkHref = hasLink ? activity.href : 'https://sjec.ac.in/cipher';
+
               return (
                 <motion.div
                   key={`${activity.id || activity.title}-${idx}`}
@@ -81,7 +83,11 @@ export const ActivitiesPage: React.FC<{ onNavigate: (page: string) => void }> = 
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.35, delay: (idx % 6) * 0.04 }}
                 >
-                  <div
+                  <a
+                    href={linkHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-cursor="lens"
                     className="group flex h-full flex-col justify-between rounded-xl border border-[var(--border)] bg-[var(--card)]/60 p-5 transition-all duration-300 hover:border-[var(--matrix)] hover:box-glow hover:-translate-y-1"
                   >
                     <div>
@@ -106,21 +112,11 @@ export const ActivitiesPage: React.FC<{ onNavigate: (page: string) => void }> = 
                       <span className="text-[11px] text-muted-foreground/70">
                         {hasLink ? 'Verified Document' : 'Department Archive'}
                       </span>
-                      {hasLink ? (
-                        <a
-                          href={activity.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label={`Open report for ${activity.title}`}
-                          className="inline-flex items-center gap-1 text-[var(--matrix)] hover:underline"
-                        >
-                          <ExternalLink size={13} />
-                        </a>
-                      ) : (
-                        <span className="font-mono text-[10px] text-[var(--matrix-dim)]">CIPHER CSE</span>
-                      )}
+                      <span className="inline-flex items-center gap-1 text-[var(--matrix)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform">
+                        <ExternalLink size={13} />
+                      </span>
                     </div>
-                  </div>
+                  </a>
                 </motion.div>
               );
             })}

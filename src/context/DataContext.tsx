@@ -146,7 +146,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setArchive(
               (row.value as ArchiveItem[]).map((a) => ({
                 ...a,
-                href: (a.href?.includes('https://sjec.ac.in') || a.href === '#' || !a.href) ? '' : a.href,
+                href: (a.href === '#' || !a.href) ? '' : a.href,
               }))
             );
           }

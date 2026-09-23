@@ -339,43 +339,38 @@ export const EventsSection: React.FC<{ onNavigate?: (page: string) => void }> = 
           </p>
 
           <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {activities.slice(0, 9).map((activity, idx) => {
+            {activities.map((activity, idx) => {
               const hasLink = Boolean(activity.href && activity.href.trim().length > 0);
+              const linkHref = hasLink ? activity.href : 'https://sjec.ac.in/cipher';
+
               return (
                 <motion.div
                   key={`${activity.id || activity.title}-${idx}`}
                   initial={{ opacity: 0, y: 15 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: (idx % 3) * 0.05 }}
+                  transition={{ duration: 0.4, delay: (idx % 3) * 0.04 }}
                 >
-                  <div
+                  <a
+                    href={linkHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-cursor="lens"
                     className="group flex h-full items-start justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)]/50 p-4 transition-all duration-300 hover:border-[var(--matrix)] hover:box-glow"
                   >
                     <div className="flex items-start gap-3">
                       <span className="font-mono text-[10px] leading-5 text-[var(--matrix)]">
-                        {String(idx + 1).padStart(2, '0')}
+                        {String(activity.id || idx + 1).padStart(2, '0')}
                       </span>
                       <h3 className="font-mono text-sm leading-snug text-foreground transition-colors group-hover:text-[var(--matrix)]">
                         {activity.title}
                       </h3>
                     </div>
-                    {hasLink ? (
-                      <a
-                        href={activity.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`Open link for ${activity.title}`}
-                        className="mt-0.5 shrink-0 text-muted-foreground transition-colors hover:text-[var(--matrix)]"
-                      >
-                        <ArrowUpRight size={15} />
-                      </a>
-                    ) : (
-                      <span className="mt-0.5 shrink-0 font-mono text-[9px] text-[var(--matrix-dim)]">
-                        CPH
-                      </span>
-                    )}
-                  </div>
+                    <ArrowUpRight
+                      size={15}
+                      className="mt-0.5 shrink-0 text-muted-foreground transition-colors group-hover:text-[var(--matrix)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                    />
+                  </a>
                 </motion.div>
               );
             })}
