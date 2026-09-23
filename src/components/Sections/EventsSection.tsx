@@ -339,7 +339,7 @@ export const EventsSection: React.FC<{ onNavigate?: (page: string) => void }> = 
           </p>
 
           <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {activities.map((activity, idx) => {
+            {activities.slice(0, 9).map((activity, idx) => {
               const hasLink = Boolean(activity.href && activity.href.trim().length > 0);
               const linkHref = hasLink ? activity.href : 'https://sjec.ac.in/cipher';
 
